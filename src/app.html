@@ -1,0 +1,1423 @@
+<title>Referral Pipeline</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&amp;family=Instrument+Sans:wght@400..700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+<style>
+/* Layout: sticky bar (brand, tabs, Add) over one work surface, max 1120px.
+   Today leads with the action queue; Contacts is a LinkedIn stage board;
+   record editing happens in a right-hand drawer. */
+:root{
+  --font-display:'Bricolage Grotesque','Segoe UI',system-ui,sans-serif;
+  --font-body:'Instrument Sans','Segoe UI',system-ui,sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+  --bg:#F1F3F8; --surface:#FFFFFF; --surface2:#F6F7FB; --ink:#141A2A; --muted:#566079; --line:#DCE1EC;
+  --accent:#2747C9; --accent-ink:#FFFFFF; --accent-soft:#E4E9FB;
+  --bad:#B42B2B; --bad-soft:#FBE7E5; --warn:#8A5A00; --warn-soft:#FCF0D2; --good:#1E7A47; --good-soft:#DDF3E5;
+  --shadow:0 12px 40px rgba(20,26,42,.18);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1220; --surface:#161B2D; --surface2:#1C2237; --ink:#E7EBF7; --muted:#9AA3BC; --line:#2A3250;
+    --accent:#8CA3FF; --accent-ink:#0E1220; --accent-soft:#222C57;
+    --bad:#FF8A80; --bad-soft:#3A1E24; --warn:#F2C26B; --warn-soft:#3A2F16; --good:#74D69C; --good-soft:#173324;
+    --shadow:0 12px 40px rgba(0,0,0,.5);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1220; --surface:#161B2D; --surface2:#1C2237; --ink:#E7EBF7; --muted:#9AA3BC; --line:#2A3250;
+  --accent:#8CA3FF; --accent-ink:#0E1220; --accent-soft:#222C57;
+  --bad:#FF8A80; --bad-soft:#3A1E24; --warn:#F2C26B; --warn-soft:#3A2F16; --good:#74D69C; --good-soft:#173324;
+  --shadow:0 12px 40px rgba(0,0,0,.5);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:14px;line-height:1.5;min-height:100%}
+body.lock{overflow:hidden}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+.sub{color:var(--muted);font-size:13px}
+.in{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+.barrow{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding-block:6px}
+.brand{display:flex;align-items:center;gap:8px;font-family:var(--font-display);font-weight:700;font-size:18px;letter-spacing:-.01em;color:var(--ink)}
+.brand svg{color:var(--accent)}
+.tabs{display:flex;gap:2px;flex:1;min-width:0;overflow-x:auto}
+.tab{background:none;border:0;border-bottom:2px solid transparent;padding:10px 12px;font-family:var(--font-display);font-weight:600;font-size:14px;color:var(--muted);white-space:nowrap}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.n{font-family:var(--font-mono);font-size:11px;margin-left:6px;padding:1px 6px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--muted)}
+.n.bad{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.addwrap{position:relative}
+.menu{position:absolute;right:0;top:calc(100% + 6px);min-width:190px;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:6px;z-index:30}
+.menu button{display:block;width:100%;text-align:left;background:none;border:0;padding:8px 10px;border-radius:6px}
+.menu button:hover{background:var(--surface2)}
+.menu hr{border:0;border-top:1px solid var(--line);margin:6px 0}
+
+/* buttons, chips */
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:6px 12px;font-weight:600;font-size:13px;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--accent)}
+.btn.ghost:hover{background:var(--accent-soft)}
+.btn.danger{color:var(--bad)}
+.btn.danger:hover{border-color:var(--bad)}
+.btn.armed{background:var(--bad);color:var(--surface);border-color:var(--bad)}
+.linkbtn{background:none;border:0;padding:0;color:var(--accent);font-weight:600;text-align:left}
+.linkbtn:hover{text-decoration:underline}
+.chip{display:inline-block;font-size:12px;font-weight:600;padding:1px 9px;border-radius:999px;border:1px solid transparent;white-space:nowrap}
+.chip.d0{background:var(--surface2);color:var(--muted);border-color:var(--line)}
+.chip.d1{background:var(--surface2);color:var(--ink);border-color:var(--line)}
+.chip.d2{background:var(--accent-soft);color:var(--accent)}
+.chip.d3{background:var(--accent);color:var(--accent-ink)}
+.chip.d4{background:var(--good-soft);color:var(--good)}
+.chip.closed{background:transparent;color:var(--muted);border-color:var(--line);text-decoration:line-through}
+.chip.s-spotted{background:var(--surface2);color:var(--muted);border-color:var(--line)}
+.chip.s-asking{background:var(--accent-soft);color:var(--accent)}
+.chip.s-applied{background:var(--accent);color:var(--accent-ink)}
+.chip.s-interviewing{background:var(--warn-soft);color:var(--warn)}
+.chip.s-offer{background:var(--good-soft);color:var(--good)}
+.chip.s-rejected{background:var(--bad-soft);color:var(--bad)}
+.chip.s-withdrawn{background:transparent;color:var(--muted);border-color:var(--line)}
+.due{font-family:var(--font-mono);font-size:12px;font-weight:500;padding:1px 8px;border-radius:4px;white-space:nowrap}
+.due.bad{background:var(--bad-soft);color:var(--bad)}
+.due.warn{background:var(--warn-soft);color:var(--warn)}
+.due.soon{background:var(--surface2);color:var(--ink)}
+.due.later,.due.none{color:var(--muted)}
+.tier{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+.tier.t-dream{color:var(--accent)}
+.coldtxt{color:var(--bad);font-weight:600}
+.av{width:32px;height:32px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-family:var(--font-display);font-weight:700;font-size:12px;flex:none}
+
+/* main */
+main{padding-block:20px 56px}
+.banner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:10px 14px;margin-bottom:18px;font-weight:500}
+.banner.plain{background:var(--surface2);color:var(--muted);border:1px solid var(--line)}
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));border:1px solid var(--line);border-radius:8px;background:var(--surface);margin-bottom:28px}
+.stat{padding:12px 16px;border-left:1px solid var(--line)}
+.stat:first-child{border-left:0}
+.stat b{display:block;font-family:var(--font-display);font-size:26px;line-height:1.1;font-weight:700}
+.stat span{font-size:12px;color:var(--muted)}
+.stat.bad b{color:var(--bad)}
+.today{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:36px;align-items:start}
+h2.sec{font-family:var(--font-display);font-size:19px;font-weight:650;margin:0 0 4px;letter-spacing:-.01em}
+h3.grp{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:20px 0 2px;display:flex;gap:8px;align-items:center}
+h3.grp.bad{color:var(--bad)}
+h3.grp.warn{color:var(--warn)}
+.task{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:10px 16px;align-items:start;padding:14px 0;border-top:1px solid var(--line)}
+.task .acts{grid-column:1 / -1;justify-content:flex-start;padding-left:42px}
+.who{display:flex;gap:10px;align-items:center;min-width:0}
+.who .linkbtn{font-weight:650;font-size:14px;color:var(--ink)}
+.who .linkbtn:hover{color:var(--accent)}
+.what{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.locked .bar{display:none}
+.lockcard{max-width:400px;margin:12vh auto 0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:26px;box-shadow:var(--shadow)}
+.lockcard form{display:flex;flex-direction:column;gap:14px}
+.lockcard h2{margin:0}
+.lockcard p{margin:0}
+.lockcard .acts{justify-content:flex-start}
+.rec{font-size:18px;letter-spacing:.06em;background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:12px;margin:12px 0 0;word-break:break-all;user-select:all}
+.lkerr{color:var(--bad);font-weight:600;font-size:13px}
+.lkreset{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.empty{border:1px dashed var(--line);border-radius:8px;padding:22px;color:var(--muted);background:var(--surface)}
+.empty h2{color:var(--ink)}
+.empty .acts{justify-content:flex-start;margin-top:12px}
+.wj{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.wj.ready{border-color:var(--good);background:var(--good-soft)}
+.wj .t{font-weight:650}
+.wj .acts{justify-content:flex-start}
+.wj .note{font-size:13px;color:var(--muted)}
+.wj.ready .note{color:var(--good);font-weight:600}
+
+/* toolbar */
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.toolbar input[type=search],.toolbar select{width:auto;flex:1 1 200px;min-width:160px;max-width:340px}
+.toolbar .chips{flex:0 1 auto;min-width:0;max-width:100%}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.fchip{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-weight:600;font-size:13px;color:var(--muted)}
+.fchip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chk{display:flex;gap:6px;align-items:center;color:var(--muted)}
+
+/* board */
+.board{display:flex;gap:12px;overflow-x:auto;padding-bottom:12px;align-items:flex-start}
+.col{flex:0 0 252px;background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:10px}
+.col h3{margin:0;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);display:flex;justify-content:space-between}
+.ccard{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px;margin-top:8px;cursor:pointer}
+.ccard:hover{border-color:var(--accent)}
+.ccard b{display:block;font-weight:650}
+.ccard .meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.ccard .sub{overflow-wrap:anywhere}
+.colempty{color:var(--muted);font-size:13px;padding:10px 2px}
+
+/* contacts grouped by company */
+.cgroup{margin-bottom:28px}
+.cgh{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:8px}
+.cgn{font-family:var(--font-display);font-size:17px;font-weight:650;color:var(--ink)}
+.cgn:hover{color:var(--accent)}
+.cgh .btn{margin-left:auto}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin-top:12px}
+.cgrid .ccard{margin-top:0}
+
+/* companies */
+.corow{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1.5fr) minmax(0,1fr) auto;gap:8px 16px;align-items:center;padding:14px 0;border-top:1px solid var(--line);cursor:pointer}
+.corow:hover .cn strong{color:var(--accent)}
+.cn{display:flex;flex-direction:column}
+.cn strong{font-family:var(--font-display);font-size:16px}
+.cm{display:flex;flex-direction:column;gap:6px}
+.meter{display:flex;gap:3px}
+.meter i{width:26px;height:6px;border-radius:2px;background:var(--line);display:block}
+.meter i.on{background:var(--accent)}
+.meter.top i.on{background:var(--good)}
+
+/* jobs */
+.jhead,.jrow{display:grid;grid-template-columns:minmax(0,2.1fr) minmax(0,.9fr) minmax(0,1.5fr) minmax(0,1.1fr);gap:8px 16px;align-items:center}
+.jhead{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;padding-bottom:8px}
+.jrow{padding:14px 0;border-top:1px solid var(--line);cursor:pointer}
+.jrow:hover .jt{color:var(--accent)}
+.jt{font-weight:650;font-size:15px}
+.jrow .refc{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+
+/* drawer */
+#scrim{position:fixed;inset:0;background:rgba(10,14,28,.5);z-index:40}
+#drawer{position:fixed;top:0;right:0;bottom:0;width:min(580px,100%);background:var(--surface);z-index:50;display:flex;flex-direction:column;box-shadow:var(--shadow);padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);padding-right:env(safe-area-inset-right,0px)}
+.dh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 20px 12px;border-bottom:1px solid var(--line)}
+.dh h2{margin:0;font-family:var(--font-display);font-size:22px;letter-spacing:-.01em;line-height:1.2;overflow-wrap:anywhere}
+.eyebrow{margin:0 0 2px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.x{background:none;border:0;font-size:26px;line-height:1;color:var(--muted);padding:0 6px}
+.x:hover{color:var(--ink)}
+.db{overflow:auto;flex:1;padding:16px 20px 24px;display:flex;flex-direction:column;gap:16px}
+.df{display:flex;gap:8px;align-items:center;padding:12px 20px;border-top:1px solid var(--line);background:var(--surface)}
+.df .sp{flex:1}
+.next{background:var(--surface2);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.next .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.next .acts{justify-content:flex-start}
+.draft textarea{width:100%}
+.drow{display:flex;gap:10px;align-items:center;margin-top:6px;flex-wrap:wrap}
+.drow .sp{flex:1}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.fld{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fld label,.lbl{font-size:12px;font-weight:650;color:var(--muted)}
+input[type=text],input[type=password],input[type=url],input[type=email],input[type=date],input[type=number],input[type=search],select,textarea{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 10px;min-width:0}
+textarea{resize:vertical;line-height:1.45}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:0;border-color:var(--accent)}
+.fld.chkf{flex-direction:row;align-items:center;gap:8px}
+.fld.chkf label{color:var(--ink);font-weight:500;font-size:14px}
+.fld.chkf input{width:auto}
+.hint{margin:0;font-size:12px;color:var(--muted)}
+.err{margin:0;color:var(--bad);font-weight:600;font-size:13px}
+.log{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:4px;max-height:180px;overflow:auto}
+.log li{display:flex;gap:10px;font-size:13px}
+.log time{font-family:var(--font-mono);font-size:12px;color:var(--muted);flex:none;width:52px}
+.rel{display:flex;flex-direction:column;gap:6px}
+.relrow{display:flex;gap:8px;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding:6px 0}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-weight:600;font-size:13px;z-index:80;opacity:0;pointer-events:none;transition:opacity .15s}
+#toast.on{opacity:1}
+
+@media (max-width:900px){
+  .today{grid-template-columns:minmax(0,1fr);gap:28px}
+}
+@media (max-width:720px){
+  .tabs{order:3;width:100%;flex:none}
+  .tab{padding:10px 8px;font-size:13px}
+  .n{margin-left:4px;padding:0 5px}
+  .addwrap{margin-left:auto}
+  .task{grid-template-columns:minmax(0,1fr)}
+  .task .acts{padding-left:0}
+  .acts{justify-content:flex-start}
+  .corow{grid-template-columns:minmax(0,1fr)}
+  .jhead{display:none}
+  .jrow{grid-template-columns:minmax(0,1fr)}
+  .strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stat{border-left:0;border-top:1px solid var(--line)}
+  .stat:nth-child(-n+2){border-top:0}
+  .stat:nth-child(even){border-left:1px solid var(--line)}
+  input[type=text],input[type=password],input[type=url],input[type=email],input[type=date],input[type=number],input[type=search],select,textarea{font-size:16px}
+}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+</style>
+
+<div class="bar"><div class="in barrow">
+  <div class="brand"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="5" cy="11" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="11" r="3.5" fill="currentColor"/><path d="M8.5 11h5" stroke="currentColor" stroke-width="2"/></svg><span>Referral Pipeline</span></div>
+  <nav class="tabs" role="tablist" id="tabs" aria-label="Sections"></nav>
+  <div class="addwrap">
+    <button class="btn primary" id="addbtn" data-act="add-menu" aria-haspopup="menu" aria-expanded="false">Add</button>
+    <div class="menu" id="addmenu" role="menu" hidden>
+      <button role="menuitem" data-act="new-contact">Contact</button>
+      <button role="menuitem" data-act="new-job">Job</button>
+      <button role="menuitem" data-act="new-company">Company</button>
+      <hr>
+      <button role="menuitem" data-act="profile">Message details</button>
+      <button role="menuitem" data-act="sync" id="syncitem">Sync across devices</button>
+      <button role="menuitem" data-act="show-recovery" id="recitem" hidden>Recovery code</button>
+      <button role="menuitem" data-act="lock" id="lockitem" hidden>Lock now</button>
+      <button role="menuitem" data-act="export">Export data</button>
+      <button role="menuitem" data-act="import">Import data</button>
+    </div>
+  </div>
+</div></div>
+<main class="in" id="main"></main>
+<div id="scrim" hidden></div>
+<aside id="drawer" role="dialog" aria-modal="true" aria-labelledby="dtitle" hidden></aside>
+<div id="toast" role="status" aria-live="polite"></div>
+<input type="file" id="importfile" accept="application/json,.json" hidden aria-label="Import data file">
+
+<script>
+(function(){
+'use strict';
+var MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function $(s,r){return (r||document).querySelector(s);}
+function $$(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s));}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function pad(n){return String(n).padStart(2,'0');}
+function iso(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function today(){return iso(new Date());}
+function parse(s){var p=s.split('-').map(Number);return new Date(p[0],p[1]-1,p[2]);}
+function addDays(s,n){var d=parse(s);d.setDate(d.getDate()+n);return iso(d);}
+function diff(a,b){return Math.round((parse(a)-parse(b))/86400000);}
+function fmt(s){if(!s)return '';var p=s.split('-').map(Number);var y=new Date().getFullYear();return MONTHS[p[1]-1]+' '+p[2]+(p[0]!==y?', '+p[0]:'');}
+function ago(s){var n=diff(today(),s);return n<=0?'today':n===1?'1 day ago':n+' days ago';}
+function nid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function safeUrl(u){u=(u||'').trim();if(!u)return '';if(/^https?:\/\//i.test(u))return u;if(/^[\w-]+(\.[\w-]+)+/.test(u))return 'https://'+u;return '';}
+function initials(n){var p=(n||'?').trim().split(/\s+/);return ((p[0]||'?')[0]+(p.length>1?p[p.length-1][0]:'')).toUpperCase();}
+function plural(n,w){return n+' '+w+(n===1?'':'s');}
+
+var STAGES=[
+ {k:'identified',label:'To contact',depth:0,days:0,todo:'Send a connection request or an email',acts:[{label:'Request sent',to:'requested'},{label:'Sent email',act:'email-first'}]},
+ {k:'requested',label:'Outreach sent',depth:1,days:3,todo:'No reply yet. Send a follow-up',acts:[]},
+ {k:'connected',label:'Connected',depth:2,days:2,todo:'Send your first message',acts:[{label:'Message sent',to:'messaged'},{label:'Keep warm',to:'warm'}]},
+ {k:'messaged',label:'Messaged',depth:2,days:5,todo:'Follow up on your message',acts:[{label:'Sent follow-up',act:'followup'},{label:'They replied',to:'replied'}]},
+ {k:'replied',label:'Replied',depth:3,days:2,todo:'Suggest a 15-minute call',acts:[{label:'Chat booked',to:'chat'}]},
+ {k:'chat',label:'Chat booked',depth:3,days:3,todo:'Prepare for the chat',acts:[{label:'Chat done',to:'chatdone'}]},
+ {k:'chatdone',label:'Chat done',depth:3,days:2,todo:'Send thanks and ask about a referral',acts:[{label:'Referral asked',to:'asked'},{label:'Keep warm',to:'warm'}]},
+ {k:'asked',label:'Referral asked',depth:4,days:4,todo:'Check on your referral request',acts:[{label:'They agreed',to:'agreed'},{label:'Keep warm',to:'warm'}]},
+ {k:'agreed',label:'Referral agreed',depth:4,days:3,todo:'Send your resume and the job link',acts:[{label:'Referral submitted',to:'submitted'}]},
+ {k:'submitted',label:'Referral submitted',depth:4,days:20,todo:'Check in and keep the relationship warm',acts:[{label:'Touched base',act:'touch'}]},
+ {k:'warm',label:'Keeping warm',depth:3,days:20,todo:'Check in. No ask needed',acts:[{label:'Touched base',act:'touch'},{label:'Referral asked',to:'asked'}]},
+ {k:'closed',label:'Closed',depth:-1,days:null,todo:'',acts:[]}
+];
+var STAGE={};STAGES.forEach(function(s){STAGE[s.k]=s;});
+var STAGE_HINT={requested:'LinkedIn cannot message a pending request. Switch to Email for a follow-up.',chat:'Prepare two or three questions about the team and how they hire.',closed:'This contact is closed and will not appear in follow-ups.'};
+var GROUPS=[
+ {label:'To contact',stages:['identified']},
+ {label:'Outreach sent',stages:['requested']},
+ {label:'Connected',stages:['connected','messaged']},
+ {label:'In conversation',stages:['replied','chat','chatdone']},
+ {label:'Referral',stages:['asked','agreed','submitted']},
+ {label:'Keeping warm',stages:['warm']}
+];
+var DEPTH_LABEL=['No outreach yet','Outreach sent','Connected','In conversation','Referral track'];
+var SOURCES=['Alumni','Former colleague','Friend of a friend','Recruiter','Hiring manager','Event or community','Cold outreach'];
+var TIERS=[{k:'dream',label:'Dream'},{k:'target',label:'Target'},{k:'backup',label:'Backup'}];
+var STATUSES=[{k:'spotted',label:'Spotted'},{k:'asking',label:'Referral asked'},{k:'applied',label:'Applied'},{k:'interviewing',label:'Interviewing'},{k:'offer',label:'Offer'},{k:'rejected',label:'Rejected'},{k:'withdrawn',label:'Withdrawn'}];
+var STATUS={};STATUSES.forEach(function(s){STATUS[s.k]=s;});
+var INTERVIEWS=['','Recruiter screen','Hiring manager','Technical','Onsite or final','Offer stage'];
+var FILTERS=[['all','All'],['notyet','Not yet applied'],['applied','Applied'],['interview','Interviewing'],['closed','Closed']];
+
+/* ---------- pure logic ---------- */
+function depthOf(c){var s=STAGE[c.stage];return s?s.depth:0;}
+var WARM={dream:10,other:20};
+function cadenceDays(c){var co=compById(c.companyId);return co&&co.tier==='dream'?WARM.dream:WARM.other;}
+function isWarm(c){return c.stage==='warm'||c.stage==='submitted';}
+function isCold(c){return c.stage!=='closed'&&depthOf(c)>=2&&!!c.lastTouch&&diff(today(),c.lastTouch)>cadenceDays(c);}
+function touchHtml(c){
+  if(c.stage==='closed'||!c.lastTouch)return '';
+  return '<br><span class="'+(isCold(c)?'coldtxt':'')+'">'+(isCold(c)?'Going cold. ':'')+'Last touched '+esc(ago(c.lastTouch))+'</span>';
+}
+function suggestNext(c){
+  if(c.stage==='warm'||c.stage==='submitted')return addDays(today(),cadenceDays(c));
+  var s=STAGE[c.stage];if(!s||s.days==null)return '';
+  if(c.stage==='chat'&&c.chatDate)return c.chatDate;
+  var d=s.days;
+  if(c.stage==='requested'){var f=c.outFu||0;d=f===0?3:f===1?4:7;}
+  if(c.stage==='messaged'){var m=c.msgs||1;d=m<=1?5:m===2?7:14;}
+  return addDays(today(),d);
+}
+function dueInfo(s){
+  if(!s)return {cls:'none',label:'No date'};
+  var n=diff(s,today());
+  if(n<0)return {cls:'bad',label:(-n)+'d overdue'};
+  if(n===0)return {cls:'warn',label:'Due today'};
+  if(n===1)return {cls:'soon',label:'Tomorrow'};
+  if(n<=7)return {cls:'soon',label:'In '+n+' days'};
+  return {cls:'later',label:fmt(s)};
+}
+function jobBucket(a){var s=a.status;return (s==='spotted'||s==='asking')?'notyet':s==='applied'?'applied':(s==='interviewing'||s==='offer')?'interview':'closed';}
+function withStage(c,to,note){
+  var n=Object.assign({},c),from=c.stage,t=today();
+  n.stage=to;n.lastTouch=t;
+  if(to==='requested'&&from!=='requested')n.outFu=0;
+  if(to==='requested'&&!n.sentAt&&!n.emailSentAt)n.sentAt=t;
+  if(to==='connected'&&!n.acceptedAt)n.acceptedAt=t;
+  if(to==='messaged'&&from!=='messaged')n.msgs=Math.max(1,n.msgs||0);
+  var label=(STAGE[from]?STAGE[from].label:'New')+' → '+STAGE[to].label;
+  n.log=[{d:t,t:note||label}].concat(c.log||[]).slice(0,40);
+  return n;
+}
+function warmKind(c){return (D&&D.type==='contact'&&D.wk!=null)?D.wk:((c.warmN||0)%3);}
+function warmText(c,cn,first,me,ch){
+  var k=warmKind(c),subj,body;
+  if(k===0){subj='Thought of you';body='I came across [an article or news item] and thought of our conversation about [topic]. Thought you might find it useful.';}
+  else if(k===1){subj='Congratulations';body='I saw [news: a launch, promotion, or post] and wanted to say congratulations. It sounds like a busy and exciting stretch at '+cn+'.';}
+  else{subj='Quick update';body='A quick update from my side: [progress on your search or a project]. Thanks again for [what they did for you]. It was genuinely helpful.';}
+  if(ch==='email')return {subject:subj,body:'Hi '+first+',\n\n'+body+' How are things on your end?\n\nBest,\n'+me};
+  return 'Hi '+first+', '+body+' How are things on your end?';
+}
+function emailFor(c,co){
+  var first=(c.name||'').trim().split(/\s+/)[0]||'there';
+  var me=(S.profile&&S.profile.me)||'[your name]';
+  var role=(S.profile&&S.profile.role)||'[target role]';
+  var cn=co?co.name:'[company]';
+  var li=!!c.sentAt,em=!!c.emailSentAt;
+  if(c.stage==='identified'){
+    return {subject:'Quick question about '+cn,body:'Hi '+first+',\n\nI’m '+me+', a '+role+' exploring roles at '+cn+'. [One line on why you’re reaching out, such as a shared school or something they worked on.]\n\nWould you be open to a 15-minute call in the next couple of weeks to hear about your experience there? I’ll send a connection request on LinkedIn as well, in case that’s easier.\n\nThanks,\n'+me};
+  }
+  if(c.stage==='requested'){
+    if(em)return {subject:'Re: Quick question about '+cn,body:'Hi '+first+',\n\nFollowing up on my note from '+fmt(c.emailSentAt)+' in case it got buried.'+(li?' I also sent a connection request on LinkedIn.':'')+' I’d still love 15 minutes to hear about your experience at '+cn+', and I’m happy to work around your schedule.\n\nThanks,\n'+me};
+    return {subject:'Quick question about '+cn,body:'Hi '+first+',\n\nI sent you a connection request on LinkedIn a few days ago and wanted to reach out directly as well. I’m a '+role+' exploring roles at '+cn+', and I’d value 15 minutes to hear about your experience there. Would a short call in the next week or two work?\n\nThanks,\n'+me};
+  }
+  if(c.stage==='warm')return warmText(c,cn,first,me,'email');
+  return null;
+}
+function draftFor(c,co,app){
+  var first=(c.name||'').trim().split(/\s+/)[0]||'there';
+  var me=(S.profile&&S.profile.me)||'[your name]';
+  var role=(S.profile&&S.profile.role)||'[target role]';
+  var cn=co?co.name:'[company]';
+  if(app){
+    return 'Hi '+first+', I saw the '+app.title+' role at '+cn+' ('+(safeUrl(app.url)||'[link]')+') and it lines up well with my background in [one line]. Would you be comfortable referring me? I can send my resume and a short blurb you can forward.';
+  }
+  switch(c.stage){
+    case 'identified':return 'Hi '+first+', I’m '+me+', a '+role+' looking at roles at '+cn+'. I’d love to connect and hear a bit about your experience there.';
+    case 'connected':return 'Thanks for connecting, '+first+'. I’m exploring '+role+' roles at '+cn+' and would value 15 minutes to hear what your team works on. Would a short call in the next week or two work?';
+    case 'messaged':return 'Hi '+first+', circling back on my note in case it got buried. No pressure at all. Even a couple of pointers on how '+cn+' hires for '+role+' roles would help.';
+    case 'replied':return 'Thanks '+first+', glad to hear it. I’m flexible this week and next, so pick whatever works best for you. 15 minutes is plenty.';
+    case 'chatdone':return 'Thanks for the time today, '+first+'. [One specific thing you learned] was really useful. I’ll keep watching '+cn+'’s openings, and if a '+role+' role fits, would you be open to referring me?';
+    case 'asked':return 'Hi '+first+', quick follow-up on my referral question. If it helps, I can send my resume and a two-line summary you can forward. Totally fine if now isn’t a good time.';
+    case 'agreed':return 'Thank you, '+first+'! Here’s my resume and the role: [posting link]. Two lines you can paste: [why you fit]. Let me know if you need anything else.';
+    case 'submitted':return 'Thanks again for submitting my referral, '+first+'. I’ll let you know how it goes.';
+    case 'warm':return warmText(c,cn,first,me,'li');
+  }
+  return '';
+}
+
+/* ---------- state ---------- */
+var S={companies:[],contacts:[],apps:[],profile:{},mode:'pending',root:null,loaded:{},err:null};
+var UI={tab:'today',cco:'',cq:'',closed:false,jf:'all',jq:'',coq:'',grp:'stage'};
+try{var t0=localStorage.getItem('rp-tab');if(t0&&/^(today|companies|contacts|jobs)$/.test(t0))UI.tab=t0;var g0=localStorage.getItem('rp-grp');if(g0==='company'||g0==='stage')UI.grp=g0;}catch(e){}
+
+function compById(id){return S.companies.find(function(c){return c.id===id;});}
+function compName(id){var c=compById(id);return c?c.name:'Unknown company';}
+function contactById(id){return S.contacts.find(function(c){return c.id===id;});}
+function appById(id){return S.apps.find(function(a){return a.id===id;});}
+function byName(a,b){return (a.name||'').localeCompare(b.name||'');}
+function isReady(){return S.mode==='local'||(S.mode==='cloud'&&S.loaded.companies&&S.loaded.contacts&&S.loaded.apps);}
+
+var savedAt='';
+function loadLocal(){try{var j=JSON.parse(localStorage.getItem('rp-data')||'null');if(j){S.companies=j.companies||[];S.contacts=j.contacts||[];S.apps=j.apps||[];S.profile=j.profile||{};savedAt=j.savedAt||'';}}catch(e){}}
+function plainData(){return {savedAt:savedAt,companies:S.companies,contacts:S.contacts,apps:S.apps,profile:S.profile};}
+/* Standalone site: everything in localStorage is encrypted (AES-GCM, key from a passphrase via PBKDF2). */
+var VAULT={key:null,pass:'',salt:'',iter:310000,keys:{},rec:{code:'',salt:'',iter:100000,key:null}};
+function b64(u8){var s='';for(var i=0;i<u8.length;i++)s+=String.fromCharCode(u8[i]);return btoa(s);}
+function unb64(s){var b=atob(s),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u;}
+async function keyFor(salt,iter,kind){
+  kind=kind||'p';var id=kind+':'+salt+':'+iter+(kind==='r'?':'+VAULT.rec.code:'');if(VAULT.keys[id])return VAULT.keys[id];
+  var secret=kind==='r'?VAULT.rec.code:VAULT.pass;
+  var base=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),'PBKDF2',false,['deriveKey']);
+  var k=await crypto.subtle.deriveKey({name:'PBKDF2',salt:unb64(salt),iterations:iter,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+  VAULT.keys[id]=k;return k;
+}
+async function seal(obj,key){
+  var iv=crypto.getRandomValues(new Uint8Array(12));
+  var ct=await crypto.subtle.encrypt({name:'AES-GCM',iv:iv},key||VAULT.key,new TextEncoder().encode(JSON.stringify(obj)));
+  return {iv:b64(iv),ct:b64(new Uint8Array(ct))};
+}
+async function unseal(key,rec){
+  var pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:unb64(rec.iv)},key,unb64(rec.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+/* recovery code: a second key that opens the same data if the passphrase is forgotten */
+function genCode(){var al='ABCDEFGHJKMNPQRSTUVWXYZ23456789',r=crypto.getRandomValues(new Uint8Array(24)),o='';for(var i=0;i<24;i++){if(i&&i%4===0)o+='-';o+=al[r[i]%al.length];}return o;}
+function normCode(s){var c=String(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');return c.replace(/(.{4})(?=.)/g,'$1-');}
+async function newRecovery(){
+  VAULT.rec={code:genCode(),salt:b64(crypto.getRandomValues(new Uint8Array(16))),iter:100000,key:null};
+  VAULT.rec.key=await keyFor(VAULT.rec.salt,VAULT.rec.iter,'r');
+}
+function writeLocal(){
+  if(S.mode==='locked')return Promise.resolve();
+  if(!VAULT.key){try{localStorage.setItem('rp-data',JSON.stringify(plainData()));}catch(e){}return Promise.resolve();}
+  return enqueue('vault',async function(){
+    if(!VAULT.key)return;
+    var payload={data:plainData(),sync:{token:SYNC.token,gist:SYNC.gist,at:SYNC.at},rec:{code:VAULT.rec.code,salt:VAULT.rec.salt,iter:VAULT.rec.iter}};
+    var rec=await seal(payload,VAULT.key);
+    rec.v=1;rec.salt=VAULT.salt;rec.iter=VAULT.iter;
+    var r2=null;
+    if(VAULT.rec.key){r2=await seal(payload,VAULT.rec.key);r2.v=1;r2.salt=VAULT.rec.salt;r2.iter=VAULT.rec.iter;}
+    try{localStorage.setItem('rp-vault',JSON.stringify(rec));if(r2)localStorage.setItem('rp-vault-rec',JSON.stringify(r2));}catch(e){toast('Could not save in this browser.');}
+  });
+}
+function saveLocal(){savedAt=new Date().toISOString();writeLocal();syncSoon();}
+async function vaultCreate(pass){
+  VAULT.pass=pass;VAULT.salt=b64(crypto.getRandomValues(new Uint8Array(16)));VAULT.iter=310000;VAULT.keys={};
+  VAULT.key=await keyFor(VAULT.salt,VAULT.iter);
+  await newRecovery();
+  loadLocal(); /* adopts any unencrypted data saved here before the lock existed */
+  try{var sj=JSON.parse(localStorage.getItem('rp-sync')||'null');if(sj&&sj.token){SYNC.token=sj.token;SYNC.gist=sj.gist||'';SYNC.at=sj.at||'';}}catch(e){}
+  S.mode='local';
+  await writeLocal();
+  try{localStorage.removeItem('rp-data');localStorage.removeItem('rp-sync');}catch(e){}
+}
+async function vaultOpen(pass){
+  var rec=JSON.parse(localStorage.getItem('rp-vault'));
+  VAULT.pass=pass;VAULT.keys={};VAULT.salt=rec.salt;VAULT.iter=rec.iter||310000;
+  var key=await keyFor(VAULT.salt,VAULT.iter),p;
+  try{p=await unseal(key,rec);}catch(e){VAULT.pass='';VAULT.keys={};throw new Error('bad passphrase');}
+  VAULT.key=key;
+  if(p.rec&&p.rec.code){VAULT.rec={code:p.rec.code,salt:p.rec.salt,iter:p.rec.iter,key:null};VAULT.rec.key=await keyFor(p.rec.salt,p.rec.iter,'r');}
+  var d=p.data||{},sy=p.sync||{};
+  S.companies=d.companies||[];S.contacts=d.contacts||[];S.apps=d.apps||[];S.profile=d.profile||{};savedAt=d.savedAt||'';
+  SYNC.token=sy.token||'';SYNC.gist=sy.gist||'';SYNC.at=sy.at||'';
+}
+function hasVault(){try{return !!localStorage.getItem('rp-vault');}catch(e){return false;}}
+
+/* ---------- lock screen ---------- */
+var LK={mode:'setup',err:'',busy:false,reset:false},idleT=0;
+function lockHtml(){
+  var m=LK.mode,setup=m==='setup',rec=m==='recover';
+  var head=setup?'Create a passphrase':(rec?'Use your recovery code':'Unlock your tracker');
+  var sub=setup?'Your pipeline is encrypted in this browser with this passphrase, and nobody can open it without it. You will also get a recovery code to keep as a failsafe.'
+    :(rec?'Enter the recovery code you saved, then choose a new passphrase.':'Enter your passphrase to open your pipeline.');
+  var pnew=setup||rec;
+  return '<div class="lockcard"><form id="lockform" autocomplete="off">'
+   +'<h2 class="sec">'+head+'</h2><p class="sub">'+sub+'</p>'
+   +(rec?fld('lk-code','Recovery code','<input id="lk-code" type="text" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX">'):'')
+   +fld('lk-pass',pnew?'New passphrase':'Passphrase','<input id="lk-pass" type="password" autocomplete="'+(pnew?'new-password':'current-password')+'">',pnew?'At least 8 characters.':'')
+   +(pnew?fld('lk-pass2','Repeat passphrase','<input id="lk-pass2" type="password" autocomplete="new-password">'):'')
+   +(LK.err?'<p class="lkerr" role="alert">'+esc(LK.err)+'</p>':'')
+   +'<div class="acts"><button class="btn primary" type="submit"'+(LK.busy?' disabled':'')+'>'+(LK.busy?'Working…':(setup?'Create and open':(rec?'Recover and open':'Unlock')))+'</button></div>'
+   +(setup?'':'<div class="lkreset">'+(rec?'<button type="button" class="btn ghost" data-act="lock-back">Back</button>':(LK.reset?'<span class="sub">This erases the data stored in this browser. Synced or exported copies are not touched.</span><button type="button" class="btn danger" data-act="lock-erase">Erase and start over</button><button type="button" class="btn" data-act="lock-cancel">Cancel</button>':'<button type="button" class="btn ghost" data-act="lock-recover">Forgot passphrase? Use recovery code</button><button type="button" class="btn ghost" data-act="lock-reset">Erase this browser</button>'))+'</div>')
+   +'</form></div>';
+}
+async function recoverVault(codeRaw,newPass){
+  var raw=localStorage.getItem('rp-vault-rec');
+  if(!raw)throw new Error('norec');
+  var rec=JSON.parse(raw),code=normCode(codeRaw);
+  VAULT.pass='';VAULT.keys={};VAULT.rec={code:code,salt:rec.salt,iter:rec.iter,key:null};
+  var rkey=await keyFor(rec.salt,rec.iter,'r'),p;
+  try{p=await unseal(rkey,rec);}catch(e){VAULT.rec={code:'',salt:'',iter:100000,key:null};VAULT.keys={};throw new Error('badcode');}
+  VAULT.rec.key=rkey;
+  VAULT.pass=newPass;VAULT.salt=b64(crypto.getRandomValues(new Uint8Array(16)));VAULT.iter=310000;
+  VAULT.key=await keyFor(VAULT.salt,VAULT.iter);
+  var d=p.data||{},sy=p.sync||{};
+  S.companies=d.companies||[];S.contacts=d.contacts||[];S.apps=d.apps||[];S.profile=d.profile||{};savedAt=d.savedAt||'';
+  SYNC.token=sy.token||'';SYNC.gist=sy.gist||'';SYNC.at=sy.at||'';
+  S.mode='local';
+  await writeLocal();
+}
+async function submitLock(){
+  if(LK.busy)return;
+  var m=LK.mode,setup=m==='setup',rec=m==='recover',p=$('#lk-pass').value,code=rec?$('#lk-code').value:'';
+  if(setup||rec){
+    var p2=$('#lk-pass2').value;
+    if(rec&&normCode(code).length<29){LK.err='Enter the full recovery code.';renderAll();return;}
+    if(p.length<8){LK.err='Use at least 8 characters.';renderAll();return;}
+    if(p!==p2){LK.err='The two passphrases do not match.';renderAll();return;}
+  }else if(!p){LK.err='Enter your passphrase.';renderAll();return;}
+  if(!(window.crypto&&window.crypto.subtle)){LK.err='This page needs a secure (https) connection to encrypt your data.';renderAll();return;}
+  LK.busy=true;LK.err='';renderAll();
+  var showCode=setup;
+  try{
+    if(setup)await vaultCreate(p);
+    else if(rec)await recoverVault(code,p);
+    else{await vaultOpen(p);if(!VAULT.rec.key){await newRecovery();S.mode='local';await writeLocal();showCode=true;}}
+  }catch(e){
+    LK.busy=false;
+    LK.err=setup?'Could not set up encryption in this browser.':(rec?(e.message==='norec'?'No recovery code was set up in this browser. Erase this browser and restore from sync with your recovery code instead.':'That recovery code did not unlock your data.'):'That passphrase did not unlock your data.');
+    S.mode='locked';renderAll();return;
+  }
+  LK.busy=false;LK.err='';S.mode='local';bumpIdle();renderAll();
+  if(showCode)openRecovery(true);
+  if(syncOn())syncNow();
+}
+function openRecovery(first){
+  D={type:'recovery'};
+  showDrawer(dhead('Failsafe','Recovery code')
+   +'<div class="db"><p class="sub" style="margin:0">'+(first?'Save this code now. ':'')+'If you forget your passphrase, this code opens your data and lets you set a new passphrase, here or on a new device with sync. Keep it somewhere other than this browser, such as a password manager or a printed note. Anyone who has it can open your data.</p><p class="mono rec" id="rec-code">'+esc(VAULT.rec.code)+'</p></div>'
+   +'<footer class="df"><button class="btn primary" data-act="copy-rec">Copy code</button><button class="btn" data-act="close">'+(first?'I have saved it':'Close')+'</button></footer>',null);
+}
+async function lockNow(){
+  if(S.mode!=='local'||!VAULT.key)return;
+  clearTimeout(syncT);clearTimeout(idleT);
+  try{await chain.vault;}catch(e){}
+  if(D)closeDrawer();
+  S.mode='locked';S.companies=[];S.contacts=[];S.apps=[];S.profile={};savedAt='';
+  SYNC.token='';SYNC.gist='';SYNC.at='';SYNC.err='';
+  VAULT.key=null;VAULT.pass='';VAULT.keys={};VAULT.rec={code:'',salt:'',iter:100000,key:null};
+  LK={mode:'unlock',err:'',busy:false,reset:false};
+  renderAll();
+}
+function bumpIdle(){clearTimeout(idleT);if(VAULT.key)idleT=setTimeout(lockNow,15*60*1000);}
+['pointerdown','keydown','scroll'].forEach(function(ev){document.addEventListener(ev,bumpIdle,{passive:true});});
+document.addEventListener('submit',function(e){if(e.target&&e.target.id==='lockform'){e.preventDefault();submitLock();}});
+var chain={};
+function enqueue(key,fn){var p=(chain[key]||Promise.resolve()).catch(function(){}).then(fn);chain[key]=p;return p;}
+function fail(e){var m=(e&&e.code==='quota_exceeded')?'Storage is full. Delete some records first.':'Could not save. Check your connection and try again.';toast(m);}
+function put(kind,obj){
+  var id=obj.id,data=Object.assign({},obj);delete data.id;
+  Object.keys(data).forEach(function(k){if(data[k]===undefined)delete data[k];});
+  if(S.mode==='cloud'){return enqueue(kind+'/'+id,function(){return S.root.collection(kind).doc(id).set(data);}).catch(fail);}
+  var full=Object.assign({},data,{id:id}),i=S[kind].findIndex(function(x){return x.id===id;});
+  if(i>=0)S[kind][i]=full;else S[kind].push(full);
+  saveLocal();schedule();return Promise.resolve();
+}
+function del(kind,id){
+  if(S.mode==='cloud'){return enqueue(kind+'/'+id,function(){return S.root.collection(kind).doc(id).delete();}).catch(fail);}
+  S[kind]=S[kind].filter(function(x){return x.id!==id;});saveLocal();schedule();return Promise.resolve();
+}
+function saveProfile(p){
+  if(S.mode==='cloud'){return enqueue('profile',function(){return S.root.collection('settings').doc('profile').set(p);}).catch(fail);}
+  S.profile=p;saveLocal();schedule();return Promise.resolve();
+}
+
+/* ---------- toast ---------- */
+var toastT=null;
+function toast(m){var t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(function(){t.classList.remove('on');},2200);}
+
+/* ---------- render scheduling ---------- */
+var raf=0;
+function schedule(){if(raf)return;raf=requestAnimationFrame(function(){raf=0;renderAll();});}
+function renderAll(){
+  document.body.classList.toggle('locked',S.mode==='locked');
+  var li=$('#lockitem');if(li)li.hidden=!VAULT.key;
+  var ri=$('#recitem');if(ri)ri.hidden=!VAULT.rec.key;
+  renderTabs();renderMain();
+}
+
+function renderTabs(){
+  var t=today(),due=S.contacts.filter(function(c){return c.stage!=='closed'&&c.next&&c.next<=t;}).length;
+  var notyet=S.apps.filter(function(a){return jobBucket(a)==='notyet';}).length;
+  var tabs=[['today','Today',due,due>0],['companies','Companies',S.companies.length,false],['contacts','Contacts',S.contacts.filter(function(c){return c.stage!=='closed';}).length,false],['jobs','Jobs',notyet,false]];
+  $('#tabs').innerHTML=tabs.map(function(x){
+    return '<button class="tab" role="tab" data-act="tab" data-tab="'+x[0]+'" aria-selected="'+(UI.tab===x[0])+'">'+x[1]+(x[2]?'<span class="n'+(x[3]?' bad':'')+'">'+x[2]+'</span>':'')+'</button>';
+  }).join('');
+}
+
+function renderMain(){
+  var m=$('#main');
+  if(S.mode==='locked'){m.innerHTML=lockHtml();var lf=$('#lk-pass');if(lf&&!LK.busy)lf.focus();return;}
+  if(S.err){m.innerHTML='<div class="empty"><h2 class="sec">Your pipeline could not load</h2><p>Reload the page. If this keeps happening, check that you are signed in and the artifact is shared with you.</p></div>';return;}
+  if(!isReady()){m.innerHTML='<p class="sub">Loading your pipeline…</p>';return;}
+  var ae=document.activeElement;
+  if(ae&&ae.closest&&ae.closest('.toolbar')&&/^(INPUT|SELECT)$/.test(ae.tagName)&&$('#list')){fillList();return;}
+  var banner='';
+  var hasEx=S.companies.concat(S.contacts,S.apps).some(function(x){return x.example;});
+  if(S.mode==='local'){
+    if(inClaude())banner+='<div class="banner plain">Saving in this browser only. Sign in to Claude to keep your pipeline across devices.</div>';
+    else if(syncOn())banner+='<div class="banner plain"><span>Synced to your private GitHub gist. '+esc(syncNote())+'</span></div>';
+    else banner+='<div class="banner"><span>Your data is saved, encrypted, in this browser only. Turn on sync to keep it on GitHub and use it on any device.</span><button class="btn" data-act="sync">Turn on sync</button></div>';
+  }
+  if(hasEx)banner+='<div class="banner"><span>Example data is loaded so you can see how it works.</span><button class="btn" data-act="clear-examples">Clear examples</button></div>';
+  m.innerHTML=banner+toolbarHtml()+'<div id="list"></div>';
+  fillList();
+}
+
+function toolbarHtml(){
+  if(UI.tab==='companies')return '<div class="toolbar"><input type="search" id="coq" placeholder="Search companies" aria-label="Search companies" value="'+esc(UI.coq)+'"></div>';
+  if(UI.tab==='contacts'){
+    var opts='<option value="">All companies</option>'+S.companies.slice().sort(byName).map(function(c){return '<option value="'+c.id+'"'+(UI.cco===c.id?' selected':'')+'>'+esc(c.name)+'</option>';}).join('');
+    return '<div class="toolbar"><div class="chips" role="group" aria-label="Group contacts"><button class="fchip" data-act="grp" data-g="stage" aria-pressed="'+(UI.grp==='stage')+'">By stage</button><button class="fchip" data-act="grp" data-g="company" aria-pressed="'+(UI.grp==='company')+'">By company</button></div><select id="cco" aria-label="Filter by company">'+opts+'</select><input type="search" id="cq" placeholder="Search contacts" aria-label="Search contacts" value="'+esc(UI.cq)+'"><label class="chk"><input type="checkbox" id="cclosed"'+(UI.closed?' checked':'')+'> Show closed</label></div>';
+  }
+  if(UI.tab==='jobs'){
+    var counts={all:S.apps.length};S.apps.forEach(function(a){var b=jobBucket(a);counts[b]=(counts[b]||0)+1;});
+    return '<div class="toolbar"><div class="chips" role="group" aria-label="Filter jobs">'+FILTERS.map(function(f){return '<button class="fchip" data-act="jf" data-f="'+f[0]+'" aria-pressed="'+(UI.jf===f[0])+'">'+f[1]+' '+(counts[f[0]]||0)+'</button>';}).join('')+'</div><input type="search" id="jq" placeholder="Search jobs" aria-label="Search jobs" value="'+esc(UI.jq)+'"></div>';
+  }
+  return '';
+}
+function fillList(){
+  var el=$('#list');if(!el)return;
+  if(UI.tab==='today')el.innerHTML=todayHtml();
+  else if(UI.tab==='companies')el.innerHTML=companiesHtml();
+  else if(UI.tab==='contacts')el.innerHTML=boardHtml();
+  else el.innerHTML=jobsHtml();
+}
+
+/* ---------- shared bits ---------- */
+function chipStage(s){var st=STAGE[s]||STAGE.identified;return '<span class="chip d'+Math.max(st.depth,0)+(st.depth<0?' closed':'')+'">'+esc(st.label)+'</span>';}
+function chipStatus(s){var st=STATUS[s]||STATUS.spotted;return '<span class="chip s-'+st.k+'">'+esc(st.label)+'</span>';}
+function chipDue(n){var d=dueInfo(n);return '<span class="due '+d.cls+'">'+esc(d.label)+'</span>';}
+function todoFor(c){
+  if(c.stage==='requested'){return c.emailSentAt?'No reply yet. Send a follow-up':'No acceptance yet. Try an email as a second touch';}
+  var s=STAGE[c.stage];return s?s.todo:'';
+}
+function actionsFor(c){
+  var s=STAGE[c.stage];if(!s)return [];
+  if(c.stage==='requested'){
+    var li=!!c.sentAt,em=!!c.emailSentAt,a=[];
+    a.push(em?{label:'Sent follow-up',act:'outfollow'}:{label:'Sent email',act:'email-first'});
+    if(!li)a.push({label:'Sent LinkedIn request',act:'li-first'});
+    else a.push({label:'They accepted',to:'connected'});
+    a.push({label:'They replied',to:'replied'});
+    return a;
+  }
+  return s.acts;
+}
+function actionBtns(c){
+  var list=actionsFor(c);
+  return list.map(function(a,i){
+    return '<button class="btn'+(i===0?' primary':'')+'" data-act="'+(a.act||'adv')+'" data-id="'+c.id+'"'+(a.to?' data-to="'+a.to+'"':'')+'>'+esc(a.label)+'</button>';
+  }).join('');
+}
+function meterHtml(d){var h='';for(var i=1;i<=4;i++)h+='<i class="'+(d>=i?'on':'')+'"></i>';return '<div class="meter'+(d>=4?' top':'')+'" role="img" aria-label="'+esc(DEPTH_LABEL[Math.max(d,0)])+'">'+h+'</div>';}
+function emptyHtml(){
+  return '<div class="empty"><h2 class="sec">Start with a company you want to work at</h2><p>Add the company, then the people you plan to reach on LinkedIn. When a job shows up, you will see who to ask for a referral.</p><div class="acts"><button class="btn primary" data-act="new-company">Add a company</button><button class="btn" data-act="new-contact">Add a contact</button></div></div>';
+}
+
+/* ---------- Today ---------- */
+function taskHtml(c){
+  var s=STAGE[c.stage];
+  return '<article class="task"><div class="who"><span class="av" aria-hidden="true">'+esc(initials(c.name))+'</span><div style="min-width:0"><button class="linkbtn" data-act="open-contact" data-id="'+c.id+'">'+esc(c.name)+'</button><div class="sub">'+esc([c.title,compName(c.companyId)].filter(Boolean).join(' · '))+touchHtml(c)+'</div></div></div>'
+   +'<div class="what">'+chipStage(c.stage)+'<span>'+esc(todoFor(c))+'</span>'+chipDue(c.next)+'</div>'
+   +'<div class="acts">'+actionBtns(c)+'<button class="btn ghost" data-act="snooze" data-id="'+c.id+'">Snooze 3d</button></div></article>';
+}
+function waitingHtml(a){
+  var ref=contactById(a.refId),co=compById(a.companyId),ready=ref&&(ref.stage==='agreed'||ref.stage==='submitted');
+  var h='<article class="wj'+(ready?' ready':'')+'"><div><button class="linkbtn t" data-act="open-job" data-id="'+a.id+'">'+esc(a.title)+'</button><div class="sub">'+esc([co?co.name:'',a.location].filter(Boolean).join(' · '))+'</div></div>';
+  var url=safeUrl(a.url);
+  if(ref){
+    h+='<div class="what">'+chipStatus(a.status)+'<span class="sub">Referral via '+esc(ref.name)+'</span>'+chipStage(ref.stage)+'</div>';
+    if(ready){h+='<p class="note" style="margin:0">Referral is in. Apply now.</p><div class="acts">'+(url?'<a class="btn" href="'+esc(url)+'" target="_blank" rel="noopener">Open posting</a>':'')+'<button class="btn primary" data-act="apply" data-id="'+a.id+'">Mark applied</button></div>';}
+    else h+='<div class="acts"><button class="btn" data-act="open-contact" data-id="'+ref.id+'">Open '+esc(ref.name.split(/\s+/)[0])+'</button></div>';
+  }else{
+    var warm=S.contacts.filter(function(c){return c.companyId===a.companyId&&c.stage!=='closed'&&depthOf(c)>=2;}).sort(function(x,y){return depthOf(y)-depthOf(x);}).slice(0,3);
+    if(warm.length){
+      h+='<p class="note" style="margin:0">Ask for a referral:</p><div class="acts">'+warm.map(function(c){return '<button class="btn" data-act="ask" data-app="'+a.id+'" data-contact="'+c.id+'">'+esc(c.name.split(/\s+/)[0])+' <span class="sub">'+esc(STAGE[c.stage].label)+'</span></button>';}).join('')+'</div>';
+    }else{
+      h+='<p class="note" style="margin:0">No connected contact at '+esc(co?co.name:'this company')+' yet.</p><div class="acts"><button class="btn" data-act="new-contact" data-company="'+a.companyId+'">Add a contact</button></div>';
+    }
+    h+='<div class="acts"><button class="btn ghost" data-act="apply" data-id="'+a.id+'">Applied without referral</button>'+(url?'<a class="btn ghost" href="'+esc(url)+'" target="_blank" rel="noopener">Posting</a>':'')+'</div>';
+  }
+  return h+'</article>';
+}
+function todayHtml(){
+  if(!S.companies.length&&!S.contacts.length&&!S.apps.length)return emptyHtml();
+  var t=today(),wk=addDays(t,7);
+  var live=S.contacts.filter(function(c){return c.stage!=='closed'&&c.next;});
+  var byNext=function(a,b){return a.next<b.next?-1:a.next>b.next?1:0;};
+  var over=live.filter(function(c){return c.next<t;}).sort(byNext);
+  var dn=live.filter(function(c){return c.next===t;});
+  var soon=live.filter(function(c){return c.next>t&&c.next<=wk;}).sort(byNext);
+  var later=live.filter(function(c){return c.next>wk;}).sort(byNext);
+  var notyet=S.apps.filter(function(a){return jobBucket(a)==='notyet';});
+  var cut=addDays(t,-30);
+  var applied30=S.apps.filter(function(a){return a.appliedAt&&a.appliedAt>=cut;}).length;
+  var strip='<div class="strip"><div class="stat'+(over.length?' bad':'')+'"><b>'+over.length+'</b><span>Overdue</span></div><div class="stat"><b>'+dn.length+'</b><span>Due today</span></div><div class="stat"><b>'+soon.length+'</b><span>Next 7 days</span></div><div class="stat"><b>'+notyet.length+'</b><span>Jobs not yet applied</span></div><div class="stat"><b>'+applied30+'</b><span>Applied, last 30 days</span></div></div>';
+  var f='<section aria-labelledby="h-fu"><h2 class="sec" id="h-fu">Follow-ups</h2>';
+  var nw=function(c){return !isWarm(c);};
+  over=over.filter(nw);dn=dn.filter(nw);soon=soon.filter(nw);later=later.filter(nw);
+  var any=over.length||dn.length||soon.length;
+  if(over.length)f+='<h3 class="grp bad">Overdue <span class="mono">'+over.length+'</span></h3>'+over.map(taskHtml).join('');
+  if(dn.length)f+='<h3 class="grp warn">Today <span class="mono">'+dn.length+'</span></h3>'+dn.map(taskHtml).join('');
+  if(soon.length)f+='<h3 class="grp">Next 7 days <span class="mono">'+soon.length+'</span></h3>'+soon.map(taskHtml).join('');
+  if(!any){
+    f+='<div class="empty" style="margin-top:12px"><p style="margin:0">Nothing due this week.'+(later.length?' Next follow-up: <b>'+esc(later[0].name)+'</b> on '+fmt(later[0].next)+'.':' Add contacts to start your outreach.')+'</p><div class="acts"><button class="btn" data-act="new-contact">Add a contact</button></div></div>';
+  }
+  f+='</section>';
+  var wl=S.contacts.filter(function(c){return isWarm(c)&&c.next&&c.next<=wk;}).sort(byNext);
+  f+='<section aria-labelledby="h-kw"><h2 class="sec" id="h-kw" style="margin-top:36px">Keep warm</h2><p class="sub" style="margin:0">Check in every '+WARM.dream+' days at dream companies and every '+WARM.other+' days at the rest.</p>';
+  if(wl.length)f+=wl.map(taskHtml).join('');
+  else f+='<div class="empty" style="margin-top:12px"><p style="margin:0">'+(S.contacts.some(isWarm)?'Everyone is up to date.':'No one is here yet. Move a contact to Keeping warm from their card, for example after a chat when you are not ready to ask.')+'</p></div>';
+  f+='</section>';
+  var ready=function(a){var r=contactById(a.refId);return r&&(r.stage==='agreed'||r.stage==='submitted')?0:1;};
+  var jobs=notyet.slice().sort(function(a,b){return ready(a)-ready(b);});
+  var j='<section aria-labelledby="h-jw"><h2 class="sec" id="h-jw">Jobs waiting on a referral</h2>';
+  if(jobs.length)j+=jobs.map(waitingHtml).join('');
+  else j+='<div class="empty" style="margin-top:12px"><p style="margin:0">No open jobs. When you spot a role, add it and this list shows who to ask.</p><div class="acts"><button class="btn" data-act="new-job">Add a job</button></div></div>';
+  j+='</section>';
+  return strip+'<div class="today"><div>'+f+'</div><div>'+j+'</div></div>';
+}
+
+/* ---------- Companies ---------- */
+function coStats(co){
+  var cs=S.contacts.filter(function(c){return c.companyId===co.id;}),live=cs.filter(function(c){return c.stage!=='closed';}),best=null;
+  live.forEach(function(c){if(!best||depthOf(c)>depthOf(best))best=c;});
+  var jobs=S.apps.filter(function(a){return a.companyId===co.id;});
+  var last='';live.forEach(function(c){if(c.lastTouch&&c.lastTouch>last)last=c.lastTouch;});
+  var cold=!!last&&diff(today(),last)>(co.tier==='dream'?WARM.dream:WARM.other);
+  return {last:last,cold:cold,live:live,best:best,jobs:jobs,open:jobs.filter(function(a){return jobBucket(a)==='notyet';}).length};
+}
+function companiesHtml(){
+  if(!S.companies.length)return emptyHtml();
+  var q=UI.coq.trim().toLowerCase(),order={dream:0,target:1,backup:2};
+  var list=S.companies.filter(function(c){return !q||c.name.toLowerCase().indexOf(q)>=0;}).sort(function(a,b){return (order[a.tier]-order[b.tier])||byName(a,b);});
+  if(!list.length)return '<p class="sub">No companies match that search.</p>';
+  return list.map(function(co){
+    var s=coStats(co),d=s.best?depthOf(s.best):0,tier=TIERS.find(function(t){return t.k===co.tier;});
+    return '<article class="corow" tabindex="0" role="button" data-act="open-company" data-id="'+co.id+'"><div class="cn"><strong>'+esc(co.name)+'</strong><span class="tier t-'+esc(co.tier)+'">'+esc(tier?tier.label:'Target')+'</span></div>'
+     +'<div class="cm">'+meterHtml(d)+'<span class="sub">'+(s.best?esc(s.best.name)+' · '+esc(STAGE[s.best.stage].label):'No contacts yet')+'</span></div>'
+     +'<div class="sub mono">'+plural(s.live.length,'contact')+' · '+plural(s.open,'open job')+(s.last?'<br><span class="'+(s.cold?'coldtxt':'')+'">'+(s.cold?'Going cold. ':'')+'Last touch '+esc(ago(s.last))+'</span>':'')+'</div>'
+     +'<div><button class="btn" data-act="new-contact" data-company="'+co.id+'">Add contact</button></div></article>';
+  }).join('');
+}
+
+/* ---------- Contacts board ---------- */
+function cardHtml(c,hideCo){
+  var meta=[];
+  if(c.stage==='requested'){if(c.sentAt)meta.push('LinkedIn '+ago(c.sentAt));if(c.emailSentAt)meta.push('Email '+ago(c.emailSentAt));}
+  if(c.stage==='messaged')meta.push(plural(c.msgs||1,'message'));
+  if(c.stage==='chat'&&c.chatDate)meta.push('Chat '+fmt(c.chatDate));
+  return '<article class="ccard" tabindex="0" role="button" data-act="open-contact" data-id="'+c.id+'"><b>'+esc(c.name)+'</b><div class="sub">'+esc((hideCo?[c.title]:[c.title,compName(c.companyId)]).filter(Boolean).join(' · '))+'</div><div class="meta">'+chipStage(c.stage)+(c.stage!=='closed'&&c.next?chipDue(c.next):'')+(meta.length?'<span class="sub">'+esc(meta.join(' · '))+'</span>':'')+(c.stage!=='closed'&&c.lastTouch?'<span class="sub'+(isCold(c)?' coldtxt':'')+'">'+(isCold(c)?'Going cold. ':'')+'Touched '+esc(ago(c.lastTouch))+'</span>':'')+'</div></article>';
+}
+function boardHtml(){
+  if(!S.contacts.length)return emptyHtml();
+  var q=UI.cq.trim().toLowerCase();
+  var list=S.contacts.filter(function(c){
+    if(UI.cco&&c.companyId!==UI.cco)return false;
+    if(!UI.closed&&c.stage==='closed')return false;
+    if(q&&(c.name+' '+(c.title||'')+' '+compName(c.companyId)).toLowerCase().indexOf(q)<0)return false;
+    return true;
+  });
+  if(UI.grp==='company')return groupedHtml(list);
+  var cols=GROUPS.map(function(g){
+    var items=list.filter(function(c){return g.stages.indexOf(c.stage)>=0;}).sort(function(a,b){return (a.next||'9')<(b.next||'9')?-1:1;});
+    return '<section class="col" aria-label="'+esc(g.label)+'"><h3><span>'+esc(g.label)+'</span><span class="mono">'+items.length+'</span></h3>'+(items.length?items.map(cardHtml).join(''):'<p class="colempty">Nobody here</p>')+'</section>';
+  });
+  if(UI.closed){var cl=list.filter(function(c){return c.stage==='closed';});cols.push('<section class="col" aria-label="Closed"><h3><span>Closed</span><span class="mono">'+cl.length+'</span></h3>'+(cl.length?cl.map(cardHtml).join(''):'<p class="colempty">Nobody here</p>')+'</section>');}
+  return '<div class="board">'+cols.join('')+'</div>';
+}
+
+function groupedHtml(list){
+  if(!list.length)return '<p class="sub">No contacts match these filters.</p>';
+  var order={dream:0,target:1,backup:2},by={};
+  list.forEach(function(c){(by[c.companyId]=by[c.companyId]||[]).push(c);});
+  var cos=Object.keys(by).map(function(id){return compById(id)||{id:id,name:'Unknown company',tier:'target'};}).sort(function(a,b){return ((order[a.tier]||0)-(order[b.tier]||0))||byName(a,b);});
+  return cos.map(function(co){
+    var cs=by[co.id].slice().sort(function(a,b){return (depthOf(b)-depthOf(a))||((a.next||'9')<(b.next||'9')?-1:1);});
+    var best=null;cs.forEach(function(c){if(c.stage!=='closed'&&(!best||depthOf(c)>depthOf(best)))best=c;});
+    var tier=TIERS.find(function(t){return t.k===co.tier;});
+    return '<section class="cgroup" aria-label="'+esc(co.name)+'"><div class="cgh"><button class="linkbtn cgn" data-act="open-company" data-id="'+co.id+'">'+esc(co.name)+'</button><span class="tier t-'+esc(co.tier)+'">'+esc(tier?tier.label:'Target')+'</span>'+meterHtml(best?depthOf(best):0)+'<span class="sub mono">'+plural(cs.length,'contact')+'</span><button class="btn ghost" data-act="new-contact" data-company="'+co.id+'">Add contact</button></div><div class="cgrid">'+cs.map(function(c){return cardHtml(c,true);}).join('')+'</div></section>';
+  }).join('');
+}
+
+/* ---------- Jobs ---------- */
+function jobsHtml(){
+  if(!S.apps.length)return '<div class="empty"><h2 class="sec">No jobs yet</h2><p>Add a role as soon as you see one. The tracker will suggest who to ask for a referral.</p><div class="acts"><button class="btn primary" data-act="new-job">Add a job</button></div></div>';
+  var q=UI.jq.trim().toLowerCase();
+  var list=S.apps.filter(function(a){
+    if(UI.jf!=='all'&&jobBucket(a)!==UI.jf)return false;
+    if(q&&(a.title+' '+compName(a.companyId)).toLowerCase().indexOf(q)<0)return false;
+    return true;
+  }).sort(function(a,b){return (b.appliedAt||b.posted||b.createdAt||'')>(a.appliedAt||a.posted||a.createdAt||'')?1:-1;});
+  if(!list.length)return '<p class="sub">No jobs match this filter.</p>';
+  var h='<div class="jhead"><span>Job</span><span>Status</span><span>Referral</span><span>Dates and prep</span></div>';
+  return h+list.map(function(a){
+    var ref=contactById(a.refId),url=safeUrl(a.url);
+    var dates=a.appliedAt?'Applied '+fmt(a.appliedAt):(a.posted?'Posted '+fmt(a.posted):'');
+    var prep=[a.resume?'Resume '+a.resume:'',a.cover?'Cover letter':'',a.interview||''].filter(Boolean).join(' · ');
+    return '<article class="jrow" tabindex="0" role="button" data-act="open-job" data-id="'+a.id+'"><div><div class="jt">'+esc(a.title)+'</div><div class="sub">'+esc([compName(a.companyId),a.location].filter(Boolean).join(' · '))+(url?' · <a href="'+esc(url)+'" target="_blank" rel="noopener">Posting</a>':'')+'</div></div>'
+     +'<div>'+chipStatus(a.status)+'</div>'
+     +'<div class="refc">'+(ref?'<span>'+esc(ref.name)+'</span>'+chipStage(ref.stage):'<span class="sub">No referral</span>')+'</div>'
+     +'<div class="sub">'+esc(dates)+(prep?'<br>'+esc(prep):'')+'</div></article>';
+  }).join('');
+}
+
+/* ---------- drawer ---------- */
+var drawer=$('#drawer'),scrim=$('#scrim'),D=null,lastFocus=null;
+function showDrawer(html,focusSel){
+  lastFocus=document.activeElement;drawer.innerHTML=html;drawer.hidden=false;scrim.hidden=false;document.body.classList.add('lock');
+  var f=focusSel?$(focusSel,drawer):null;(f||$('.x',drawer)).focus();
+}
+function closeDrawer(){
+  drawer.hidden=true;scrim.hidden=true;drawer.innerHTML='';D=null;document.body.classList.remove('lock');
+  if(lastFocus&&lastFocus.focus&&document.contains(lastFocus)){try{lastFocus.focus();}catch(e){}}
+}
+function fld(id,label,ctl,hint){return '<div class="fld"><label for="'+id+'">'+label+'</label>'+ctl+(hint?'<p class="hint">'+hint+'</p>':'')+'</div>';}
+function inp(id,val,type,ph){return '<input id="'+id+'" type="'+(type||'text')+'" value="'+esc(val)+'" placeholder="'+esc(ph||'')+'" autocomplete="off">';}
+function sel(id,list,val){return '<select id="'+id+'">'+list.map(function(p){return '<option value="'+esc(p[0])+'"'+(p[0]===val?' selected':'')+'>'+esc(p[1])+'</option>';}).join('')+'</select>';}
+function coOptions(){return [['','Choose a company']].concat(S.companies.slice().sort(byName).map(function(c){return [c.id,c.name];})).concat([['__new','+ New company']]);}
+function dhead(eyebrow,title){return '<header class="dh"><div><p class="eyebrow">'+eyebrow+'</p><h2 id="dtitle">'+esc(title)+'</h2></div><button class="x" data-act="close" aria-label="Close">×</button></header>';}
+function newCoField(){return '<div class="fld" id="newco-wrap" hidden><label for="f-newco">New company name</label><input id="f-newco" type="text" autocomplete="off"></div>';}
+
+/* --- contact drawer --- */
+function openContact(id,preset){
+  var ex=id?contactById(id):null;
+  var c=ex?Object.assign({},ex):Object.assign({companyId:'',name:'',title:'',linkedin:'',source:'',stage:'identified',msgs:0,noted:false,chatDate:'',lastTouch:'',next:today(),notes:'',log:[]},preset||{});
+  D={type:'contact',c:c,isNew:!ex,nextTouched:false,draftEdited:false};
+  var s=STAGE[c.stage],nx='';
+  if(ex){nx='<div class="next"><div class="row">'+chipStage(c.stage)+'<span>'+esc(todoFor(c)||'No next step')+'</span>'+(c.stage!=='closed'?chipDue(c.next):'')+'</div>'+(actionsFor(c).length?'<div class="acts">'+actionBtns(c)+'</div>':'')+'</div>';}
+  var html=dhead(ex?'Contact':'New contact',ex?c.name:'Add a contact')
+   +'<div class="db">'+nx+'<div class="draft" id="draftbox"></div>'
+   +'<div class="grid2">'+fld('f-name','Name',inp('f-name',c.name))+fld('f-title','Role',inp('f-title',c.title,'text','e.g. Staff Engineer'))+'</div>'
+   +'<div class="grid2">'+fld('f-co','Company',sel('f-co',coOptions(),c.companyId))+newCoField()+'</div>'
+   +'<div class="grid2">'+fld('f-li','LinkedIn profile',inp('f-li',c.linkedin,'url','linkedin.com/in/…'))+fld('f-src','How you found them',sel('f-src',[['','Choose']].concat(SOURCES.map(function(x){return [x,x];})),c.source))+'</div>'
+   +fld('f-email','Email',inp('f-email',c.email||'','email','name@company.com'))
+   +'<div class="grid2">'+fld('f-sent','LinkedIn request sent',inp('f-sent',c.sentAt||'','date'))+fld('f-esent','Email sent',inp('f-esent',c.emailSentAt||'','date'))+'</div>'
+   +'<div class="grid2">'+fld('f-stage','Stage',sel('f-stage',STAGES.map(function(x){return [x.k,x.label];}),c.stage))+fld('f-msgs','Messages sent',inp('f-msgs',c.msgs||0,'number'))+'</div>'
+   +'<div class="grid2">'+fld('f-chat','Chat date',inp('f-chat',c.chatDate,'date'))+fld('f-next','Next follow-up',inp('f-next',c.next,'date'),'<span id="nexthint"></span>')+'</div>'
+   +'<div class="fld chkf"><input type="checkbox" id="f-noted"'+(c.noted?' checked':'')+'><label for="f-noted">Connection request included a personal note</label></div>'
+   +fld('f-notes','Notes','<textarea id="f-notes" rows="3">'+esc(c.notes)+'</textarea>')
+   +(ex?'<div><span class="lbl">Activity</span><ul class="log">'+((c.log||[]).length?(c.log||[]).map(function(l){return '<li><time>'+esc(fmt(l.d))+'</time><span>'+esc(l.t)+'</span></li>';}).join(''):'<li class="sub">No activity yet</li>')+'</ul><div class="drow"><input type="text" id="f-logn" placeholder="Log a note, e.g. replied on LinkedIn" aria-label="Log a note" style="flex:1"><button class="btn" data-act="add-log">Add</button></div></div>':'')
+   +'<p class="err" id="ferr" role="alert"></p></div>'
+   +'<footer class="df"><button class="btn primary" data-act="save">Save</button><button class="btn" data-act="close">Cancel</button><span class="sp"></span>'+(ex?'<button class="btn danger" data-act="delete">Delete</button>':'')+'</footer>';
+  showDrawer(html,ex?null:'#f-name');
+  refreshDraft();hintContact();
+  if($('#f-co').value==='__new')$('#newco-wrap').hidden=false;
+}
+function readContact(){
+  var c=D.c,g=function(id){return $('#'+id,drawer);};
+  c.name=g('f-name').value.trim();c.title=g('f-title').value.trim();c.companyId=g('f-co').value;c.linkedin=g('f-li').value.trim();c.source=g('f-src').value;
+  c.email=g('f-email').value.trim();c.sentAt=g('f-sent').value;c.emailSentAt=g('f-esent').value;
+  c.stage=g('f-stage').value;c.msgs=Math.max(0,parseInt(g('f-msgs').value,10)||0);c.noted=g('f-noted').checked;c.chatDate=g('f-chat').value;c.next=g('f-next').value;c.notes=g('f-notes').value;
+  return c;
+}
+function hintContact(){
+  var c=readContact(),s=suggestNext(c),h=$('#nexthint');if(!h)return;
+  h.innerHTML=s?'Suggested: '+esc(fmt(s))+((c.stage==='warm'||c.stage==='submitted')?' (every '+cadenceDays(c)+' days)':'')+'. <button type="button" class="linkbtn" data-act="use-suggestion" data-val="'+s+'">Use</button>':'No follow-up needed at this stage.';
+}
+function refreshDraft(){
+  var box=$('#draftbox',drawer);if(!box||!D||D.type!=='contact')return;
+  var c=readContact(),chOK=(c.stage==='identified'||c.stage==='requested'||c.stage==='warm');
+  if(!chOK)D.channel='li';else if(!D.channel)D.channel=(c.stage==='requested'?'email':'li');
+  var tog=chOK?'<div class="chips" role="group" aria-label="Draft channel" style="margin-bottom:8px"><button class="fchip" data-act="chan" data-ch="li" aria-pressed="'+(D.channel==='li')+'">LinkedIn</button><button class="fchip" data-act="chan" data-ch="email" aria-pressed="'+(D.channel==='email')+'">Email</button></div>':'';
+  if(c.stage==='warm')tog+='<div class="chips" role="group" aria-label="Message type" style="margin-bottom:8px">'+['Share something','Congratulate','Quick update'].map(function(l,i){return '<button class="fchip" data-act="wkind" data-k="'+i+'" aria-pressed="'+(warmKind(c)===i)+'">'+l+'</button>';}).join('')+'</div>';
+  if(D.channel==='email'){
+    var e=emailFor(c,compById(c.companyId));
+    if(e){
+      var addr=c.email?'<div class="drow" style="margin:0 0 8px"><span class="mono">'+esc(c.email)+'</span><button class="btn" data-act="copy-email" data-val="'+esc(c.email)+'">Copy address</button></div>':'<p class="hint" style="margin-bottom:8px">Add their email address below to copy it from here.</p>';
+      box.innerHTML=tog+addr+'<label class="lbl" for="f-subj">Subject</label><input id="f-subj" type="text" value="'+esc(e.subject)+'" autocomplete="off"><div class="drow" style="margin:6px 0 10px"><button class="btn" data-act="copy-subj">Copy subject</button></div><label class="lbl" for="f-draft">Email</label><textarea id="f-draft" rows="8">'+esc(e.body)+'</textarea><div class="drow"><span class="hint mono" id="dcount"></span><span class="sp"></span><button class="btn" data-act="copy-draft">Copy message</button></div>';
+      countDraft();return;
+    }
+  }
+  refreshDraftLI(tog);
+}
+function refreshDraftLI(tog){
+  tog=tog||'';
+  var box=$('#draftbox',drawer);if(!box)return;
+  var c=readContact(),t=draftFor(c,compById(c.companyId));
+  if(!t){box.innerHTML=tog+(STAGE_HINT[c.stage]?'<p class="hint">'+esc(STAGE_HINT[c.stage])+'</p>':'');return;}
+  var li=safeUrl(c.linkedin);
+  box.innerHTML=tog+'<label class="lbl" for="f-draft">Draft message</label><textarea id="f-draft" rows="4">'+esc(t)+'</textarea><div class="drow"><span class="hint mono" id="dcount"></span><span class="sp"></span>'+(li?'<a class="btn" href="'+esc(li)+'" target="_blank" rel="noopener">Open LinkedIn</a>':'')+'<button class="btn" data-act="copy-draft">Copy</button></div>'+(c.stage==='identified'?'<p class="hint">LinkedIn limits connection notes, so check the length against your plan.</p>':'');
+  countDraft();
+}
+function countDraft(){var t=$('#f-draft',drawer),c=$('#dcount',drawer);if(t&&c)c.textContent=t.value.length+' characters';}
+async function saveContact(){
+  var c=readContact(),err=$('#ferr',drawer),orig=D.isNew?null:contactById(c.id);
+  if(!c.name){err.textContent='Add the contact’s name.';$('#f-name').focus();return;}
+  if(!c.companyId){err.textContent='Choose a company, or add a new one.';return;}
+  var coId=c.companyId;
+  if(coId==='__new'){
+    var nm=$('#f-newco').value.trim();if(!nm){err.textContent='Enter the new company’s name.';$('#f-newco').focus();return;}
+    coId=nid();await put('companies',{id:coId,name:nm,tier:'target',careers:'',notes:'',createdAt:Date.now()});
+  }
+  var n=Object.assign({},c,{companyId:coId});
+  if(!n.id)n.id=nid();
+  if(!D.isNew&&orig&&orig.stage!==n.stage){
+    var next=n.next,msgs=n.msgs,chat=n.chatDate;
+    n=withStage(n,n.stage);n.msgs=Math.max(msgs,n.msgs||0);n.chatDate=chat;
+    n.next=D.nextTouched?next:suggestNext(n);
+  }else if(D.isNew){
+    n.createdAt=Date.now();n.log=[{d:today(),t:'Added as '+STAGE[n.stage].label}];
+    if(n.stage==='requested')n.sentAt=today();
+  }else if(!D.nextTouched&&n.stage==='chat'&&n.chatDate&&n.chatDate!==orig.chatDate){n.next=n.chatDate;}
+  await put('contacts',n);closeDrawer();toast('Saved');
+}
+async function adv(id,to){
+  var c=contactById(id);if(!c)return;
+  var n=withStage(c,to);n.next=suggestNext(n);
+  await put('contacts',n);
+}
+async function followup(id){
+  var c=contactById(id);if(!c)return;
+  var n=Object.assign({},c,{msgs:(c.msgs||1)+1,lastTouch:today()});
+  n.log=[{d:today(),t:'Follow-up #'+(n.msgs-1)+' sent'}].concat(c.log||[]).slice(0,40);
+  n.next=suggestNext(n);await put('contacts',n);
+}
+async function touch(id){
+  var c=contactById(id);if(!c)return;
+  var n=Object.assign({},c,{lastTouch:today(),warmN:(c.warmN||0)+1});
+  n.next=addDays(today(),cadenceDays(c));
+  n.log=[{d:today(),t:'Touched base'}].concat(c.log||[]).slice(0,40);await put('contacts',n);
+}
+async function outreach(id,kind){
+  var c=contactById(id);if(!c)return;
+  var t=today(),n;
+  if(kind==='email-first'){
+    n=c.stage==='requested'
+      ?Object.assign({},c,{emailSentAt:t,lastTouch:t,outFu:0,log:[{d:t,t:'Email sent'}].concat(c.log||[]).slice(0,40)})
+      :withStage(Object.assign({},c,{emailSentAt:t}),'requested','Email sent');
+  }else if(kind==='li-first'){
+    n=Object.assign({},c,{sentAt:t,lastTouch:t,log:[{d:t,t:'LinkedIn request sent'}].concat(c.log||[]).slice(0,40)});
+  }else{
+    var f=(c.outFu||0)+1;
+    n=Object.assign({},c,{outFu:f,lastTouch:t,log:[{d:t,t:'Follow-up #'+f+' sent'}].concat(c.log||[]).slice(0,40)});
+  }
+  n.next=suggestNext(n);
+  await put('contacts',n);
+}
+async function snooze(id,days){
+  var c=contactById(id);if(!c)return;
+  await put('contacts',Object.assign({},c,{next:addDays(today(),days)}));toast('Snoozed '+days+' days');
+}
+async function addLog(){
+  var i=$('#f-logn',drawer),t=i.value.trim();if(!t)return;
+  var c=contactById(D.c.id);if(!c)return;
+  var n=Object.assign({},c,{lastTouch:today(),log:[{d:today(),t:t}].concat(c.log||[]).slice(0,40)});
+  await put('contacts',n);D.c.log=n.log;i.value='';
+  $('.log',drawer).innerHTML=n.log.map(function(l){return '<li><time>'+esc(fmt(l.d))+'</time><span>'+esc(l.t)+'</span></li>';}).join('');
+}
+
+/* --- job drawer --- */
+function refOptions(companyId,sel0){
+  var list=S.contacts.filter(function(c){return c.companyId===companyId&&c.stage!=='closed';}).sort(byName);
+  return '<option value="">No referral yet</option>'+list.map(function(c){return '<option value="'+c.id+'"'+(c.id===sel0?' selected':'')+'>'+esc(c.name)+' ('+esc(STAGE[c.stage].label)+')</option>';}).join('');
+}
+function openJob(id,preset){
+  var ex=id?appById(id):null;
+  var a=ex?Object.assign({},ex):Object.assign({companyId:'',title:'',url:'',location:'',salary:'',level:'',posted:today(),status:'spotted',refId:'',appliedAt:'',resume:'',cover:false,interview:'',interviewDate:'',notes:''},preset||{});
+  D={type:'job',a:a,isNew:!ex};
+  var canAsk=ex&&(a.status==='spotted'||a.status==='asking')&&S.contacts.some(function(c){return c.companyId===a.companyId&&c.stage!=='closed';});
+  var url=safeUrl(a.url);
+  var html=dhead(ex?'Job':'New job',ex?a.title:'Add a job')
+   +'<div class="db">'
+   +(ex?'<div class="next"><div class="row">'+chipStatus(a.status)+'<span class="sub">'+esc(compName(a.companyId))+'</span></div><div class="acts">'+(canAsk?'<button class="btn primary" data-act="ask" data-app="'+a.id+'">Ask for a referral</button>':'')+(url?'<a class="btn" href="'+esc(url)+'" target="_blank" rel="noopener">Open posting</a>':'')+'</div></div>':'')
+   +'<div class="grid2">'+fld('j-title','Job title',inp('j-title',a.title))+fld('j-co','Company',sel('j-co',coOptions(),a.companyId))+newCoField()+'</div>'
+   +fld('j-url','Posting link',inp('j-url',a.url,'url','https://…'))
+   +'<div class="grid2">'+fld('j-loc','Location',inp('j-loc',a.location))+fld('j-sal','Salary range',inp('j-sal',a.salary,'text','e.g. $150k to $180k'))+'</div>'
+   +'<div class="grid2">'+fld('j-lvl','Level',inp('j-lvl',a.level,'text','e.g. Senior'))+fld('j-posted','Date posted',inp('j-posted',a.posted,'date'))+'</div>'
+   +'<div class="grid2">'+fld('j-status','Status',sel('j-status',STATUSES.map(function(s){return [s.k,s.label];}),a.status))+fld('j-ref','Referral contact','<select id="j-ref">'+refOptions(a.companyId,a.refId)+'</select>')+'</div>'
+   +'<div class="grid2">'+fld('j-applied','Applied on',inp('j-applied',a.appliedAt,'date'))+fld('j-resume','Resume version',inp('j-resume',a.resume,'text','e.g. PM v3'))+'</div>'
+   +'<div class="grid2">'+fld('j-int','Interview stage',sel('j-int',INTERVIEWS.map(function(x){return [x,x||'Not started'];}),a.interview))+fld('j-intd','Interview date',inp('j-intd',a.interviewDate,'date'))+'</div>'
+   +'<div class="fld chkf"><input type="checkbox" id="j-cover"'+(a.cover?' checked':'')+'><label for="j-cover">Cover letter sent</label></div>'
+   +fld('j-notes','Notes','<textarea id="j-notes" rows="3">'+esc(a.notes)+'</textarea>')
+   +'<p class="err" id="ferr" role="alert"></p></div>'
+   +'<footer class="df"><button class="btn primary" data-act="save">Save</button><button class="btn" data-act="close">Cancel</button><span class="sp"></span>'+(ex?'<button class="btn danger" data-act="delete">Delete</button>':'')+'</footer>';
+  showDrawer(html,ex?null:'#j-title');
+  if($('#j-co').value==='__new')$('#newco-wrap').hidden=false;
+}
+function readJob(){
+  var a=D.a,g=function(id){return $('#'+id,drawer);};
+  a.title=g('j-title').value.trim();a.companyId=g('j-co').value;a.url=g('j-url').value.trim();a.location=g('j-loc').value.trim();a.salary=g('j-sal').value.trim();a.level=g('j-lvl').value.trim();
+  a.posted=g('j-posted').value;a.status=g('j-status').value;a.refId=g('j-ref').value;a.appliedAt=g('j-applied').value;a.resume=g('j-resume').value.trim();a.interview=g('j-int').value;a.interviewDate=g('j-intd').value;a.cover=g('j-cover').checked;a.notes=g('j-notes').value;
+  return a;
+}
+async function saveJob(){
+  var a=readJob(),err=$('#ferr',drawer);
+  if(!a.title){err.textContent='Add the job title.';$('#j-title').focus();return;}
+  if(!a.companyId){err.textContent='Choose a company, or add a new one.';return;}
+  var coId=a.companyId;
+  if(coId==='__new'){
+    var nm=$('#f-newco').value.trim();if(!nm){err.textContent='Enter the new company’s name.';return;}
+    coId=nid();await put('companies',{id:coId,name:nm,tier:'target',careers:'',notes:'',createdAt:Date.now()});
+  }
+  var n=Object.assign({},a,{companyId:coId});
+  if(!n.id){n.id=nid();n.createdAt=Date.now();}
+  if(n.status==='applied'&&!n.appliedAt)n.appliedAt=today();
+  await put('apps',n);closeDrawer();toast('Saved');
+}
+async function markApplied(id){
+  var a=appById(id);if(!a)return;
+  await put('apps',Object.assign({},a,{status:'applied',appliedAt:today()}));toast('Marked as applied');
+}
+
+/* --- ask for referral --- */
+function openAsk(appId,contactId){
+  var a=appById(appId);if(!a)return;
+  var cands=S.contacts.filter(function(c){return c.companyId===a.companyId&&c.stage!=='closed';}).sort(function(x,y){return depthOf(y)-depthOf(x);});
+  if(!cands.length){toast('Add a contact at this company first');return;}
+  var cid=contactId&&cands.some(function(c){return c.id===contactId;})?contactId:(a.refId&&cands.some(function(c){return c.id===a.refId;})?a.refId:cands[0].id);
+  D={type:'ask',appId:appId,cands:cands};
+  var opts=cands.map(function(c){return '<option value="'+c.id+'"'+(c.id===cid?' selected':'')+'>'+esc(c.name)+' ('+esc(STAGE[c.stage].label)+')</option>';}).join('');
+  var html=dhead('Referral request',a.title)
+   +'<div class="db"><p class="sub" style="margin:0">'+esc(compName(a.companyId))+(a.location?' · '+esc(a.location):'')+'. Copy the message, send it on LinkedIn, then confirm below.</p>'
+   +fld('k-who','Ask','<select id="k-who">'+opts+'</select>')
+   +'<div class="draft"><label class="lbl" for="k-draft">Message</label><textarea id="k-draft" rows="6"></textarea><div class="drow"><span class="sp"></span><a class="btn" id="k-li" target="_blank" rel="noopener" hidden>Open LinkedIn</a><button class="btn" data-act="copy-ask">Copy</button></div></div>'
+   +'<p class="hint">Confirming marks the job as “Referral asked”, moves this contact to the referral stage, and sets a follow-up in 4 days.</p></div>'
+   +'<footer class="df"><button class="btn primary" data-act="ask-confirm">I sent it</button><button class="btn" data-act="close">Cancel</button></footer>';
+  showDrawer(html,'#k-draft');refreshAsk();
+}
+function refreshAsk(){
+  var a=appById(D.appId),c=contactById($('#k-who',drawer).value);if(!a||!c)return;
+  $('#k-draft',drawer).value=draftFor(c,compById(a.companyId),a);
+  var li=safeUrl(c.linkedin),l=$('#k-li',drawer);if(li){l.href=li;l.hidden=false;}else l.hidden=true;
+}
+async function askConfirm(){
+  var a=appById(D.appId),c=contactById($('#k-who',drawer).value);if(!a||!c)return;
+  var n=c;
+  if(depthOf(c)<4){n=withStage(c,'asked','Asked for referral: '+a.title);n.next=addDays(today(),4);}
+  else{n=Object.assign({},c,{lastTouch:today(),next:addDays(today(),4),log:[{d:today(),t:'Asked for referral: '+a.title}].concat(c.log||[]).slice(0,40)});}
+  await put('contacts',n);
+  await put('apps',Object.assign({},a,{refId:c.id,status:a.status==='spotted'?'asking':a.status}));
+  closeDrawer();toast('Referral request logged');
+}
+
+/* --- company drawer --- */
+function openCompany(id,preset){
+  var ex=id?compById(id):null;
+  var c=ex?Object.assign({},ex):Object.assign({name:'',tier:'target',careers:'',notes:''},preset||{});
+  D={type:'company',c:c,isNew:!ex};
+  var people='',jobs='';
+  if(ex){
+    var cs=S.contacts.filter(function(x){return x.companyId===id;}).sort(byName),js=S.apps.filter(function(x){return x.companyId===id;});
+    people='<div><span class="lbl">Contacts</span><div class="rel">'+(cs.length?cs.map(function(x){return '<div class="relrow"><button class="linkbtn" data-act="open-contact" data-id="'+x.id+'">'+esc(x.name)+'</button>'+chipStage(x.stage)+'</div>';}).join(''):'<p class="hint">No contacts yet.</p>')+'</div><div class="drow"><button class="btn" data-act="new-contact" data-company="'+id+'">Add contact</button></div></div>';
+    jobs='<div><span class="lbl">Jobs</span><div class="rel">'+(js.length?js.map(function(x){return '<div class="relrow"><button class="linkbtn" data-act="open-job" data-id="'+x.id+'">'+esc(x.title)+'</button>'+chipStatus(x.status)+'</div>';}).join(''):'<p class="hint">No jobs yet.</p>')+'</div><div class="drow"><button class="btn" data-act="new-job" data-company="'+id+'">Add job</button></div></div>';
+  }
+  var html=dhead(ex?'Company':'New company',ex?c.name:'Add a company')
+   +'<div class="db"><div class="grid2">'+fld('o-name','Company name',inp('o-name',c.name))+fld('o-tier','Priority',sel('o-tier',TIERS.map(function(t){return [t.k,t.label];}),c.tier),'Check-in gap: 10 days at dream companies, 20 days at the rest.')+'</div>'
+   +fld('o-careers','Careers page',inp('o-careers',c.careers,'url','https://…'))
+   +fld('o-notes','Notes','<textarea id="o-notes" rows="3">'+esc(c.notes)+'</textarea>')+people+jobs
+   +'<p class="err" id="ferr" role="alert"></p></div>'
+   +'<footer class="df"><button class="btn primary" data-act="save">Save</button><button class="btn" data-act="close">Cancel</button><span class="sp"></span>'+(ex?'<button class="btn danger" data-act="delete">Delete</button>':'')+'</footer>';
+  showDrawer(html,ex?null:'#o-name');
+}
+async function saveCompany(){
+  var c=D.c,g=function(id){return $('#'+id,drawer);};
+  c.name=g('o-name').value.trim();c.tier=g('o-tier').value;c.careers=g('o-careers').value.trim();c.notes=g('o-notes').value;
+  if(!c.name){$('#ferr',drawer).textContent='Add the company name.';g('o-name').focus();return;}
+  var n=Object.assign({},c);if(!n.id){n.id=nid();n.createdAt=Date.now();}
+  await put('companies',n);closeDrawer();toast('Saved');
+}
+
+/* --- profile --- */
+function openProfile(){
+  D={type:'profile'};
+  var p=S.profile||{};
+  showDrawer(dhead('Message details','Used in message drafts')
+   +'<div class="db"><p class="sub" style="margin:0">Drafts fill in your name and the role you are targeting. You can edit any draft before copying it.</p>'
+   +fld('p-me','Your name',inp('p-me',p.me||''))+fld('p-role','Role you are targeting',inp('p-role',p.role||'','text','e.g. product manager'))+'</div>'
+   +'<footer class="df"><button class="btn primary" data-act="save">Save</button><button class="btn" data-act="close">Cancel</button></footer>','#p-me');
+}
+
+/* --- delete --- */
+async function doDelete(){
+  if(!D)return;
+  if(D.type==='contact'){
+    var id=D.c.id;
+    for(const a of S.apps.filter(function(x){return x.refId===id;}))await put('apps',Object.assign({},a,{refId:''}));
+    await del('contacts',id);
+  }else if(D.type==='job'){await del('apps',D.a.id);}
+  else if(D.type==='company'){
+    var cid=D.c.id;
+    for(const x of S.contacts.filter(function(y){return y.companyId===cid;}))await del('contacts',x.id);
+    for(const x of S.apps.filter(function(y){return y.companyId===cid;}))await del('apps',x.id);
+    await del('companies',cid);
+  }
+  closeDrawer();toast('Deleted');
+}
+async function clearExamples(){
+  var kinds=['contacts','apps','companies'];
+  for(const k of kinds){for(const x of S[k].filter(function(y){return y.example;}))await del(k,x.id);}
+  toast('Examples cleared');
+}
+function copyVal(v){
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(v).then(function(){toast('Copied');},function(){toast('Select the address and copy it manually');});}
+  else toast('Select the address and copy it manually');
+}
+function copyFrom(ta){
+  if(!ta)return;
+  var v=ta.value;
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(v).then(function(){toast('Copied');},function(){ta.select();toast('Select and copy with Ctrl or Cmd+C');});}
+  else{ta.select();toast('Select and copy with Ctrl or Cmd+C');}
+}
+
+/* ---------- export / import ---------- */
+function inClaude(){return !!(window.claude&&window.claude.use);}
+async function saveFile(name,text){
+  if(inClaude()){
+    var dl=null;try{dl=await window.claude.use('downloads');}catch(e){}
+    if(!dl){toast('Export is not available in this view.');return;}
+    try{await dl.save({filename:name,data:text});toast('Export ready');}
+    catch(e){if(!e||e.code!=='declined')toast('Could not export from this view.');}
+    return;
+  }
+  var blob=new Blob([text],{type:'application/json'}),a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+  toast('Exported');
+}
+function exportData(){
+  var out={app:'referral-pipeline',version:1,exportedAt:new Date().toISOString(),profile:S.profile||{},companies:S.companies,contacts:S.contacts,apps:S.apps};
+  saveFile('referral-pipeline-'+today()+'.json',JSON.stringify(out,null,2));
+}
+function validRec(kind,it){
+  if(!it||typeof it!=='object'||typeof it.id!=='string'||!/^[A-Za-z0-9_\-.~:@+]{1,200}$/.test(it.id))return false;
+  if(kind==='companies')return typeof it.name==='string'&&it.name.trim()!=='';
+  if(kind==='contacts')return typeof it.name==='string'&&it.name.trim()!==''&&typeof it.companyId==='string'&&!!STAGE[it.stage];
+  return typeof it.title==='string'&&it.title.trim()!==''&&typeof it.companyId==='string'&&!!STATUS[it.status];
+}
+async function importData(file){
+  var txt;try{txt=await file.text();}catch(e){toast('Could not read that file.');return;}
+  var obj;try{obj=JSON.parse(txt);}catch(e){toast('That file is not valid JSON.');return;}
+  if(!obj||typeof obj!=='object'||obj.app!=='referral-pipeline'){toast('That is not a Referral Pipeline export.');return;}
+  var n=0,kinds=['companies','contacts','apps'];
+  for(const kind of kinds){
+    var list=Array.isArray(obj[kind])?obj[kind]:[];
+    for(const it of list){if(validRec(kind,it)){await put(kind,it);n++;}}
+  }
+  var p=obj.profile;
+  if(p&&typeof p==='object'&&(p.me||p.role))await saveProfile({me:String(p.me||''),role:String(p.role||'')});
+  toast('Imported '+plural(n,'record'));
+}
+
+/* ---------- sync: private GitHub gist ---------- */
+var SYNC={token:'',gist:'',at:'',busy:false,err:''},syncT=0,lastSync=0;
+var PASSMSG='The synced data was locked with a different passphrase.';
+var GIST_FILE='referral-pipeline.json',GIST_DESC='Referral Pipeline data (private)';
+function syncOn(){return S.mode==='local'&&!inClaude()&&!!SYNC.token;}
+function syncStore(){writeLocal();}
+function gh(path,method,body){
+  var h={'Accept':'application/vnd.github+json','Authorization':'Bearer '+SYNC.token,'X-GitHub-Api-Version':'2022-11-28'};
+  if(body)h['Content-Type']='application/json';
+  return fetch('https://api.github.com'+path,{method:method||'GET',headers:h,body:body?JSON.stringify(body):undefined}).then(function(r){
+    if(!r.ok){var e=new Error('http '+r.status);e.status=r.status;throw e;}
+    return r.json();
+  });
+}
+function blob(){return {app:'referral-pipeline',version:1,savedAt:savedAt,profile:S.profile||{},companies:S.companies,contacts:S.contacts,apps:S.apps};}
+async function gistBody(){
+  var env=await seal(blob(),VAULT.key);env.app='referral-pipeline';env.version=1;env.enc=true;env.salt=VAULT.salt;env.iter=VAULT.iter;
+  if(VAULT.rec.key){var r=await seal(blob(),VAULT.rec.key);r.salt=VAULT.rec.salt;r.iter=VAULT.rec.iter;env.rec=r;}
+  var f={};f[GIST_FILE]={content:JSON.stringify(env)};return f;
+}
+async function unpack(j){
+  if(!j||j.app!=='referral-pipeline')return null;
+  if(!j.enc)return {data:j,plain:true};
+  return {data:await unseal(await keyFor(j.salt,j.iter||310000),j)};
+}
+function applyBlob(j){
+  ['companies','contacts','apps'].forEach(function(k){S[k]=(Array.isArray(j[k])?j[k]:[]).filter(function(it){return validRec(k,it);});});
+  var p=j.profile&&typeof j.profile==='object'?j.profile:{};
+  S.profile={me:String(p.me||''),role:String(p.role||'')};
+  savedAt=j.savedAt||'';writeLocal();schedule();
+}
+async function findGist(){
+  var list=await gh('/gists?per_page=100');
+  var g=list.find(function(x){return x.files&&x.files[GIST_FILE];});
+  return g?g.id:'';
+}
+function syncSoon(){if(!syncOn())return;clearTimeout(syncT);syncT=setTimeout(syncNow,1500);}
+async function syncNow(){
+  if(!syncOn())return;
+  if(SYNC.busy){clearTimeout(syncT);syncT=setTimeout(syncNow,1500);return;}
+  SYNC.busy=true;SYNC.err='';
+  try{
+    if(!SYNC.gist)SYNC.gist=await findGist();
+    if(!SYNC.gist){
+      var made=await gh('/gists','POST',{description:GIST_DESC,public:false,files:await gistBody()});
+      SYNC.gist=made.id;
+    }else{
+      var g=await gh('/gists/'+SYNC.gist),f=g.files&&g.files[GIST_FILE],rm=null,plain=false;
+      if(f){
+        var txt=f.truncated?await (await fetch(f.raw_url)).text():f.content,j=null;
+        try{j=JSON.parse(txt);}catch(e){}
+        if(j){try{var u=await unpack(j);if(u){rm=u.data;plain=!!u.plain;}}catch(e){var pe=new Error('passphrase');pe.status='pass';throw pe;}}
+      }
+      if(!syncOn()){SYNC.busy=false;return;}
+      var ra=rm?(rm.savedAt||''):null;
+      if(ra!==null&&ra>savedAt){applyBlob(rm);if(plain)await gh('/gists/'+SYNC.gist,'PATCH',{files:await gistBody()});}
+      else if(ra===null||ra<savedAt||plain)await gh('/gists/'+SYNC.gist,'PATCH',{files:await gistBody()});
+    }
+    SYNC.at=new Date().toISOString();lastSync=Date.now();syncStore();
+  }catch(e){
+    SYNC.err=e.status==='pass'?PASSMSG:e.status===401?'GitHub rejected the token.':(e.status===403||e.status===404)?'GitHub refused the request. Check that the token has the gist permission.':'Could not reach GitHub.';
+  }
+  SYNC.busy=false;
+  if(D&&D.type==='sync'&&!D.connecting)openSync();
+  schedule();
+}
+function syncNote(){
+  if(SYNC.err)return 'Sync problem: '+SYNC.err;
+  if(SYNC.busy)return 'Syncing…';
+  return SYNC.at?'Last synced '+new Date(SYNC.at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'.':'Not synced yet.';
+}
+function openSync(){
+  D={type:'sync'};
+  var on=syncOn(),body;
+  if(on){
+    body='<div class="db"><p class="sub" style="margin:0">Your pipeline is kept in a private GitHub gist on your account, encrypted with your passphrase so GitHub only stores unreadable text, and merged whenever you open the app. '+esc(syncNote())+'</p>'
+     +'<p class="sub">Open this site on another device, choose Add, then Sync across devices, and paste the same token. Use the same passphrase on both devices. If two devices edit before syncing, the most recent save wins.</p></div>'
+     +'<footer class="df"><button class="btn primary" data-act="sync-now">Sync now</button><button class="btn" data-act="sync-off">Turn off sync</button><button class="btn" data-act="close">Close</button></footer>';
+  }else{
+    body='<div class="db"><p class="sub" style="margin:0">Keep your pipeline in a private GitHub gist so it survives clearing your browser and works on every device. Your data is encrypted with your passphrase before it is sent. No server is involved: this page talks to GitHub directly.</p>'
+     +'<ol class="sub" style="padding-left:18px;margin:10px 0"><li><a href="https://github.com/settings/tokens/new?scopes=gist&amp;description=Referral%20Pipeline" target="_blank" rel="noopener">Create a classic token</a> with only the <b>gist</b> permission.</li><li>Paste it below. It is stored in this browser only.</li></ol>'
+     +fld('s-token','GitHub token',inp('s-token','','password','ghp_…'))+'</div>'
+     +'<footer class="df"><button class="btn primary" data-act="save">Turn on sync</button><button class="btn" data-act="close">Cancel</button></footer>';
+  }
+  showDrawer(dhead('Private GitHub gist','Sync across devices')+body,on?null:'#s-token');
+}
+async function connectSync(){
+  var t=$('#s-token').value.trim();
+  if(!t){toast('Paste a token first.');return;}
+  SYNC.token=t;SYNC.gist='';SYNC.err='';D.connecting=true;
+  toast('Connecting…');
+  await syncNow();
+  if(SYNC.err===PASSMSG){SYNC.token='';SYNC.gist='';SYNC.err='';syncStore();openSyncRecover(t);return;}
+  if(SYNC.err){var m=SYNC.err;SYNC.token='';SYNC.err='';syncStore();if(D&&D.type==='sync')D.connecting=false;toast(m);return;}
+  syncStore();closeDrawer();toast('Sync is on');
+}
+function openSyncRecover(tok){
+  D={type:'sync',needRec:true,tok:tok};
+  showDrawer(dhead('Private GitHub gist','Restore with recovery code')
+   +'<div class="db"><p class="sub" style="margin:0">The synced data was locked with a different passphrase, probably on another device or before you reset it. Enter the recovery code you saved with it. It will replace the data in this browser with the synced copy and lock it with your current passphrase.</p>'
+   +fld('s-rec','Recovery code','<input id="s-rec" type="text" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX">')+'</div>'
+   +'<footer class="df"><button class="btn primary" data-act="sync-restore">Restore</button><button class="btn" data-act="close">Cancel</button></footer>','#s-rec');
+}
+async function syncRestore(){
+  var code=normCode($('#s-rec').value),tok=D&&D.tok;
+  if(code.length<29){toast('Enter the full recovery code.');return;}
+  var prev=VAULT.rec;
+  try{
+    SYNC.token=tok;
+    var id=await findGist();
+    if(!id)throw new Error('none');
+    var g=await gh('/gists/'+id),f=g.files&&g.files[GIST_FILE];
+    var j=JSON.parse(f.truncated?await (await fetch(f.raw_url)).text():f.content);
+    if(!j.rec)throw new Error('norec');
+    VAULT.rec={code:code,salt:j.rec.salt,iter:j.rec.iter,key:null};
+    var rkey=await keyFor(j.rec.salt,j.rec.iter,'r'),data;
+    try{data=await unseal(rkey,j.rec);}catch(e){VAULT.rec=prev;SYNC.token='';toast('That recovery code did not unlock the synced data.');return;}
+    VAULT.rec.key=rkey;SYNC.gist=id;
+    applyBlob(data);
+    await gh('/gists/'+id,'PATCH',{files:await gistBody()});
+    SYNC.at=new Date().toISOString();lastSync=Date.now();
+    await writeLocal();closeDrawer();toast('Restored from sync');
+  }catch(e){VAULT.rec=prev;SYNC.token='';SYNC.gist='';toast('Could not restore. Check the token and try again.');}
+}
+function syncOff(){SYNC.token='';SYNC.gist='';SYNC.at='';SYNC.err='';syncStore();closeDrawer();toast('Sync is off. Your data stays in this browser.');schedule();}
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&syncOn()&&Date.now()-lastSync>20000)syncNow();});
+
+/* ---------- events ---------- */
+function closeMenu(){var m=$('#addmenu');m.hidden=true;$('#addbtn').setAttribute('aria-expanded','false');}
+document.addEventListener('click',function(e){
+  var t=e.target.closest('[data-act]');
+  if(!e.target.closest('.addwrap'))closeMenu();
+  if(!t)return;
+  if(e.target.closest('a[href]')&&t!==e.target.closest('a[href]'))return;
+  var act=t.dataset.act,id=t.dataset.id;
+  switch(act){
+    case 'tab':UI.tab=t.dataset.tab;try{localStorage.setItem('rp-tab',UI.tab);}catch(x){}renderAll();break;
+    case 'add-menu':{var m=$('#addmenu');m.hidden=!m.hidden;t.setAttribute('aria-expanded',String(!m.hidden));break;}
+    case 'new-contact':closeMenu();if(D)closeDrawer();openContact(null,t.dataset.company?{companyId:t.dataset.company}:null);break;
+    case 'new-job':closeMenu();if(D)closeDrawer();openJob(null,t.dataset.company?{companyId:t.dataset.company}:null);break;
+    case 'new-company':closeMenu();if(D)closeDrawer();openCompany(null);break;
+    case 'profile':closeMenu();openProfile();break;
+    case 'lock':closeMenu();lockNow();break;
+    case 'lock-recover':LK={mode:'recover',err:'',busy:false,reset:false};renderAll();break;
+    case 'lock-back':LK={mode:'unlock',err:'',busy:false,reset:false};renderAll();break;
+    case 'show-recovery':closeMenu();openRecovery(false);break;
+    case 'copy-rec':copyVal(VAULT.rec.code);break;
+    case 'sync-restore':syncRestore();break;
+    case 'lock-reset':LK.reset=true;renderAll();break;
+    case 'lock-cancel':LK.reset=false;renderAll();break;
+    case 'lock-erase':try{localStorage.removeItem('rp-vault');localStorage.removeItem('rp-data');localStorage.removeItem('rp-sync');}catch(x){}LK={mode:'setup',err:'',busy:false,reset:false};renderAll();break;
+    case 'sync':closeMenu();openSync();break;
+    case 'sync-now':syncNow();break;
+    case 'sync-off':syncOff();break;
+    case 'export':closeMenu();exportData();break;
+    case 'import':closeMenu();$('#importfile').click();break;
+    case 'open-contact':if(D)closeDrawer();openContact(id);break;
+    case 'open-job':if(D)closeDrawer();openJob(id);break;
+    case 'open-company':if(D)closeDrawer();openCompany(id);break;
+    case 'adv':adv(id,t.dataset.to).then(function(){if(D)closeDrawer();});break;
+    case 'followup':followup(id).then(function(){if(D)closeDrawer();});break;
+    case 'touch':touch(id).then(function(){if(D)closeDrawer();});break;
+    case 'snooze':snooze(id,3);break;
+    case 'apply':markApplied(id);break;
+    case 'ask':if(D)closeDrawer();openAsk(t.dataset.app,t.dataset.contact);break;
+    case 'ask-confirm':askConfirm();break;
+    case 'copy-draft':copyFrom($('#f-draft',drawer));break;
+    case 'copy-subj':copyFrom($('#f-subj',drawer));break;
+    case 'copy-email':copyVal(t.dataset.val);break;
+    case 'chan':D.channel=t.dataset.ch;D.draftEdited=false;refreshDraft();break;
+    case 'wkind':D.wk=parseInt(t.dataset.k,10);D.draftEdited=false;refreshDraft();break;
+    case 'email-first':case 'li-first':case 'outfollow':outreach(id,act).then(function(){if(D)closeDrawer();});break;
+    case 'copy-ask':copyFrom($('#k-draft',drawer));break;
+    case 'use-suggestion':$('#f-next',drawer).value=t.dataset.val;D.nextTouched=true;break;
+    case 'add-log':addLog();break;
+    case 'jf':UI.jf=t.dataset.f;renderAll();break;
+    case 'grp':UI.grp=t.dataset.g;try{localStorage.setItem('rp-grp',UI.grp);}catch(x){}renderAll();break;
+    case 'clear-examples':clearExamples();break;
+    case 'close':closeDrawer();break;
+    case 'save':
+      if(!D)break;
+      if(D.type==='contact')saveContact();else if(D.type==='job')saveJob();else if(D.type==='company')saveCompany();
+      else if(D.type==='sync'){connectSync();}
+      else if(D.type==='profile'){saveProfile({me:$('#p-me').value.trim(),role:$('#p-role').value.trim()}).then(function(){closeDrawer();toast('Saved');});}
+      break;
+    case 'delete':
+      if(!t.dataset.armed){t.dataset.armed='1';t.dataset.label=t.textContent;t.textContent='Click again to delete';t.classList.add('armed');setTimeout(function(){if(t.isConnected){delete t.dataset.armed;t.textContent=t.dataset.label;t.classList.remove('armed');}},4000);}
+      else doDelete();
+      break;
+  }
+});
+scrim.addEventListener('click',closeDrawer);
+document.addEventListener('keydown',function(e){
+  if(e.key==='Escape'){if(!drawer.hidden)closeDrawer();closeMenu();return;}
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('[role="button"][data-act]')){e.preventDefault();e.target.click();return;}
+  if(e.key==='Enter'&&!drawer.hidden&&e.target.tagName==='INPUT'&&e.target.type!=='checkbox'&&D&&D.type!=='ask'&&e.target.id!=='f-logn'){e.preventDefault();var b=$('[data-act="save"]',drawer);if(b)b.click();return;}
+  if(e.key==='Enter'&&e.target.id==='f-logn'){e.preventDefault();addLog();return;}
+  if(e.key==='Tab'&&!drawer.hidden){
+    var f=$$('a[href],button:not([disabled]),input,select,textarea',drawer).filter(function(x){return !x.hidden&&x.offsetParent!==null;});
+    if(!f.length)return;var first=f[0],last=f[f.length-1];
+    if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+    else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+  }
+});
+document.addEventListener('input',function(e){
+  var id=e.target.id;
+  if(id==='coq'){UI.coq=e.target.value;fillList();}
+  else if(id==='cq'){UI.cq=e.target.value;fillList();}
+  else if(id==='jq'){UI.jq=e.target.value;fillList();}
+  else if(id==='f-draft'){if(D)D.draftEdited=true;countDraft();}
+  else if(id==='f-next'&&D){D.nextTouched=true;}
+  else if(id==='f-msgs'&&D&&D.type==='contact'){hintContact();}
+});
+document.addEventListener('change',function(e){
+  var id=e.target.id;
+  if(id==='importfile'){var f=e.target.files&&e.target.files[0];e.target.value='';if(f)importData(f);return;}
+  if(id==='cco'){UI.cco=e.target.value;fillList();}
+  else if(id==='cclosed'){UI.closed=e.target.checked;fillList();}
+  else if(!D)return;
+  else if(D.type==='contact'){
+    if(id==='f-stage'){D.draftEdited=false;D.nextTouched=false;D.channel=null;D.wk=null;hintContact();refreshDraft();}
+    else if(id==='f-email'||id==='f-sent'||id==='f-esent'){if(!D.draftEdited)refreshDraft();hintContact();}
+    else if(id==='f-co'){$('#newco-wrap').hidden=e.target.value!=='__new';if(!D.draftEdited)refreshDraft();}
+    else if(id==='f-name'||id==='f-chat'){if(id==='f-name'&&!D.draftEdited)refreshDraft();hintContact();}
+  }else if(D.type==='job'){
+    if(id==='j-co'){$('#newco-wrap').hidden=e.target.value!=='__new';$('#j-ref').innerHTML=refOptions(e.target.value,'');}
+    else if(id==='j-status'&&e.target.value==='applied'&&!$('#j-applied').value){$('#j-applied').value=today();}
+  }else if(D.type==='ask'&&id==='k-who'){refreshAsk();}
+});
+
+/* ---------- init ---------- */
+async function init(){
+  renderAll();
+  var db=null,uid=null;
+  try{
+    if(window.claude&&window.claude.use){
+      var user=await window.claude.use('user');
+      if(user)uid=await user.id();
+      db=await window.claude.use('db');
+    }
+  }catch(e){}
+  if(db&&uid){
+    S.mode='cloud';S.root=db.doc('data/users/'+uid+'/tracker');
+    ['companies','contacts','apps'].forEach(function(k){
+      S.root.collection(k).onSnapshot(function(snap){S[k]=snap.docs.map(function(d){return Object.assign({},d.data(),{id:d.id});});S.loaded[k]=true;schedule();},function(){S.err=true;schedule();});
+    });
+    S.root.collection('settings').doc('profile').onSnapshot(function(s){S.profile=s.exists?s.data():{};schedule();},function(){});
+  }else if(inClaude()){
+    S.mode='local';loadLocal();
+    var si=$('#syncitem');if(si)si.hidden=true;
+  }else{
+    S.mode='locked';LK.mode=hasVault()?'unlock':'setup';
+  }
+  schedule();
+}
+window.__rp={S:S,cadenceDays:cadenceDays,isCold:isCold,suggestNext:suggestNext,dueInfo:dueInfo,withStage:withStage,addDays:addDays,diff:diff};
+init();
+})();
+</script>
